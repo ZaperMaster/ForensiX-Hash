@@ -238,17 +238,21 @@ def record_pdf(record_id: str, request: ExportRequest):
         raise _bad_request(error) from error
 
 
-def _known_reports() -> set[str]:
-    return {os.path.normcase(e["path"]) for e in store.read_custody() if e.get("format") == "pdf" and e.get("path")}
+def _known_reports() -> dict[str, str]:
+    """Informes PDF creados por la app (de la cadena de custodia): ruta normalizada -> ruta."""
+
+    return {os.path.normcase(e["path"]): e["path"] for e in store.read_custody()
+            if e.get("format") == "pdf" and e.get("path")}
 
 
 @app.post("/api/open")
 def open_report(request: OpenRequest):
     """Abre un informe PDF creado por la app, o su carpeta. Solo informes de la cadena de custodia."""
 
-    if os.path.normcase(request.path) not in _known_reports():
+    known = _known_reports().get(os.path.normcase(request.path))
+    if not known:
         raise HTTPException(status_code=404, detail="Ese informe no lo ha creado ForensiX Hash.")
-    path = Path(request.path)
+    path = Path(known)  # La ruta registrada por la app, no la que llega en la petición
     if not path.exists():
         raise HTTPException(status_code=404, detail="El informe ya no está en esa carpeta.")
     if os.name != "nt":

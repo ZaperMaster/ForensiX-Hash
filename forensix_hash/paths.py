@@ -37,7 +37,9 @@ def local_path(text: str) -> str:
     if not text:
         raise ValueError("Falta la ruta.")
     path = os.path.normpath(os.path.abspath(os.path.expanduser(text)))
-    folded = os.path.normcase(path)
-    if not any(folded.startswith(os.path.normcase(root)) for root in local_roots()):
-        raise ValueError("Solo se admiten rutas de unidades locales (no rutas de red).")
-    return path
+    if len(path) > 1 and path[1] == ":":
+        path = path[0].upper() + path[1:]  # La letra de unidad, como en local_roots()
+    for root in local_roots():
+        if path.startswith(root):
+            return path
+    raise ValueError("Solo se admiten rutas de unidades locales (no rutas de red).")
