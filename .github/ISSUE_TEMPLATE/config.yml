@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Informar de un fallo de seguridad
+    url: https://github.com/ZaperMaster/ForensiX-Hash/security/advisories/new
+    about: Los fallos de seguridad de la herramienta se informan en privado, no en una issue pública.
+  - name: Web de ForensiX Hash
+    url: https://zapermaster.github.io/ForensiX-Hash/
+    about: Descarga, cómo funciona y preguntas frecuentes.

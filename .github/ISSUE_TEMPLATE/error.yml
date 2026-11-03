@@ -1,0 +1,65 @@
+name: Informar de un error
+description: Algo no funciona como debería o un hash o informe parece incorrecto.
+labels: ["error"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por avisar. Si es un **fallo de seguridad**, no lo publiques aquí: usa **Security → Report a vulnerability**.
+        **No adjuntes datos de evidencias reales** (rutas, nombres de personas, números de caso): usa datos de prueba.
+  - type: textarea
+    id: que-pasa
+    attributes:
+      label: ¿Qué ha pasado?
+      description: Describe el error y lo que esperabas que pasara.
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Pasos para reproducirlo
+      placeholder: |
+        1. Nuevo hash → Carpeta → C:\pruebas
+        2. Calcular y verificar
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: evidencia
+    attributes:
+      label: ¿Con qué tipo de evidencia?
+      options:
+        - Archivo
+        - Carpeta
+        - Disco completo
+        - Volumen (unidad con letra)
+        - Imagen de disco (.dd, .raw, .iso…)
+        - Verificación o importación de un informe
+        - Informes (PDF, HTML, TXT, JSON, CSV)
+        - Cadena de custodia
+        - Otra
+    validations:
+      required: true
+  - type: dropdown
+    id: version-app
+    attributes:
+      label: ¿Qué versión usas?
+      options:
+        - App de escritorio (ForensiX-Hash.exe)
+        - Versión web (python -m web)
+        - Línea de comandos (python -m forensix_hash)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versión de ForensiX Hash
+      description: Está en «Acerca de».
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Sistema operativo
+      placeholder: "Windows 11 24H2"
