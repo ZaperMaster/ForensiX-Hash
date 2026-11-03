@@ -16,4 +16,6 @@ Primera versión estable.
 - **Informe PDF** como comprobante en la carpeta elegida (nunca dentro de la evidencia), en español o inglés.
 - **Registros sellados** y **cadena de custodia** encadenada por hashes.
 - **Ajustes**: tema claro u oscuro (la primera vez, el de Windows); idioma; **actualizaciones automáticas firmadas** (Ed25519).
+- **Instalador** para Windows (`ForensiX-Hash_1.0.0_x64-setup.exe`): sin pedir administrador, accesos directos y
+  desinstalador que conserva los registros. También `.exe` portable.
 - App de escritorio para Windows a pantalla completa, versión web local y línea de comandos.

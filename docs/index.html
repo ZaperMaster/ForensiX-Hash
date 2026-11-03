@@ -147,7 +147,7 @@
         <a href="#faq" data-es="Preguntas" data-en="FAQ">Preguntas</a>
         <a href="https://github.com/ZaperMaster/ForensiX-Hash">GitHub</a>
         <a href="#" class="lang" id="lang">EN</a>
-        <a class="nav-cta" href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest/download/ForensiX-Hash.exe" data-es="Descargar" data-en="Download">Descargar</a>
+        <a class="nav-cta" href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest" data-es="Descargar" data-en="Download">Descargar</a>
       </div>
     </nav>
   </div>
@@ -160,12 +160,12 @@
     <p class="lead" data-es="Calcula los hashes de un archivo, una carpeta o un disco completo, verifícalos con una segunda lectura y guarda el informe con quién lo hizo, cuándo y cuándo se verificó."
        data-en="Hash a file, a folder or a whole disk, verify it with a second read and save the report with who did it, when, and when it was verified.">Calcula los hashes de un archivo, una carpeta o un disco completo, verifícalos con una segunda lectura y guarda el informe con quién lo hizo, cuándo y cuándo se verificó.</p>
     <div class="cta">
-      <a class="button primary" href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest/download/ForensiX-Hash.exe">
+      <a class="button primary" href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest">
         <svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg><span data-es="Descargar para Windows" data-en="Download for Windows">Descargar para Windows</span></a>
       <a class="button secondary" href="https://github.com/ZaperMaster/ForensiX-Hash"><span data-es="Ver el código" data-en="View source">Ver el código</span></a>
     </div>
-    <p class="small" data-es="Gratis para uso no comercial · Windows 10 y 11 · sin instalación · se actualiza sola"
-       data-en="Free for non-commercial use · Windows 10 and 11 · no installation · updates itself">Gratis para uso no comercial · Windows 10 y 11 · sin instalación · se actualiza sola</p>
+    <p class="small" data-es="Gratis para uso no comercial · Windows 10 y 11 · se instala sin administrador · se actualiza sola"
+       data-en="Free for non-commercial use · Windows 10 and 11 · installs without admin rights · updates itself">Gratis para uso no comercial · Windows 10 y 11 · se instala sin administrador · se actualiza sola</p>
     <img class="cover" src="capturas/portada.png" alt="ForensiX Hash en tema claro y oscuro">
 
     <div class="stats">
@@ -339,8 +339,11 @@ python -m forensix_hash verify &lt;id&gt; --examiner "Luis Gómez"</pre>
         <p data-es="No. Evidencias, registros e informes se quedan en tu equipo. Solo consulta GitHub para buscar actualizaciones, y se puede desactivar en Ajustes."
            data-en="No. Evidence, records and reports stay on your computer. It only checks GitHub for updates, and that can be turned off in Settings.">No. Evidencias, registros e informes se quedan en tu equipo. Solo consulta GitHub para buscar actualizaciones, y se puede desactivar en Ajustes.</p></details>
       <details><summary data-es="¿Cómo compruebo que la descarga es auténtica?" data-en="How do I check the download is authentic?">¿Cómo compruebo que la descarga es auténtica?</summary>
-        <p data-es="Cada versión publica SHA256SUMS.txt firmado. En PowerShell: Get-FileHash ForensiX-Hash.exe -Algorithm SHA256 y compara el valor."
-           data-en="Each release publishes a signed SHA256SUMS.txt. In PowerShell: Get-FileHash ForensiX-Hash.exe -Algorithm SHA256 and compare the value.">Cada versión publica SHA256SUMS.txt firmado. En PowerShell: Get-FileHash ForensiX-Hash.exe -Algorithm SHA256 y compara el valor.</p></details>
+        <p data-es="Cada versión publica SHA256SUMS.txt firmado con los hashes del instalador y del .exe. En PowerShell: Get-FileHash .\ForensiX-Hash_1.0.0_x64-setup.exe -Algorithm SHA256 y compara el valor."
+           data-en="Each release publishes a signed SHA256SUMS.txt with the hashes of the installer and the .exe. In PowerShell: Get-FileHash .\ForensiX-Hash_1.0.0_x64-setup.exe -Algorithm SHA256 and compare the value.">Cada versión publica SHA256SUMS.txt firmado con los hashes del instalador y del .exe. En PowerShell: Get-FileHash .\ForensiX-Hash_1.0.0_x64-setup.exe -Algorithm SHA256 y compara el valor.</p></details>
+      <details><summary data-es="¿Cómo se instala y se desinstala?" data-en="How do I install and uninstall it?">¿Cómo se instala y se desinstala?</summary>
+        <p data-es="Descarga ForensiX-Hash_x.y.z_x64-setup.exe de la última versión y ábrelo: se instala para tu usuario sin pedir administrador, con acceso en el menú Inicio y en el escritorio. Se desinstala desde Aplicaciones instaladas de Windows y tus registros e informes se conservan. También hay un .exe portable que no necesita instalación."
+           data-en="Download ForensiX-Hash_x.y.z_x64-setup.exe from the latest release and open it: it installs for your user without admin rights, with Start menu and desktop shortcuts. Uninstall it from Windows Installed apps; your records and reports are kept. There is also a portable .exe that needs no installation.">Descarga ForensiX-Hash_x.y.z_x64-setup.exe de la última versión y ábrelo: se instala para tu usuario sin pedir administrador, con acceso en el menú Inicio y en el escritorio. Se desinstala desde Aplicaciones instaladas de Windows y tus registros e informes se conservan. También hay un .exe portable que no necesita instalación.</p></details>
       <details><summary data-es="¿Puedo usarla en mi trabajo?" data-en="Can I use it at work?">¿Puedo usarla en mi trabajo?</summary>
         <p data-es="Es gratuita para fines no comerciales, incluidas instituciones públicas, educativas y organizaciones sin ánimo de lucro (licencia PolyForm Strict). Para uso comercial, abre una issue en GitHub."
            data-en="It is free for non-commercial purposes, including public, educational and non-profit organizations (PolyForm Strict license). For commercial use, open an issue on GitHub.">Es gratuita para fines no comerciales, incluidas instituciones públicas, educativas y organizaciones sin ánimo de lucro (licencia PolyForm Strict). Para uso comercial, abre una issue en GitHub.</p></details>
@@ -351,7 +354,7 @@ python -m forensix_hash verify &lt;id&gt; --examiner "Luis Gómez"</pre>
     <div class="wrap">
       <h2 data-es="Empieza a hashear con garantías" data-en="Start hashing with confidence">Empieza a hashear con garantías</h2>
       <div class="cta">
-        <a class="button primary" href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest/download/ForensiX-Hash.exe">
+        <a class="button primary" href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest">
           <svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg><span data-es="Descargar para Windows" data-en="Download for Windows">Descargar para Windows</span></a>
         <a class="button secondary" href="https://github.com/ZaperMaster/ForensiX-Hash#readme"><span data-es="Leer la documentación" data-en="Read the docs">Leer la documentación</span></a>
       </div>

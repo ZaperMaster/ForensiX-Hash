@@ -71,7 +71,10 @@ def main() -> None:
     if args.dry_run:
         return
     tag = f"v{__version__}"
-    files = [str(DIST / ASSET), str(DIST / SUMS), str(signature)]
+    installer = DIST / f"ForensiX-Hash_{__version__}_x64-setup.exe"
+    if not installer.exists():
+        sys.exit(f"Falta {installer.name}: ejecuta desktop\\build_windows.bat.")
+    files = [str(installer), str(DIST / ASSET), str(DIST / SUMS), str(signature)]
     if args.replace:
         # Misma versión: se sustituyen los archivos de la Release existente.
         subprocess.run(["gh", "release", "upload", tag, *files, "--clobber"], check=True)

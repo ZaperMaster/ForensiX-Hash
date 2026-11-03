@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest/download/ForensiX-Hash.exe"><b>⬇ Descargar para Windows</b></a>
+  <a href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest"><b>⬇ Descargar el instalador</b></a>
   &nbsp;·&nbsp;
   <a href="https://zapermaster.github.io/ForensiX-Hash/">Web del proyecto</a>
   &nbsp;·&nbsp;
@@ -33,8 +33,12 @@
 
 Herramienta de **hashing forense** de la marca **ForensiX**. Calcula los hashes de un **archivo**, una **carpeta** o un
 **disco completo** (pendrives, volúmenes e imágenes `.dd`/`.raw`/`.iso`), los **verifica** con una segunda lectura y
-guarda un **informe PDF** con quién lo hizo, cuándo se calculó y cuándo se verificó. El `.exe` no necesita instalación,
-se comprueba con `SHA256SUMS.txt` firmado y **se actualiza solo**.
+guarda un **informe PDF** con quién lo hizo, cuándo se calculó y cuándo se verificó.
+
+**Instalar:** descarga `ForensiX-Hash_x.y.z_x64-setup.exe` de la [última versión](https://github.com/ZaperMaster/ForensiX-Hash/releases/latest) y ábrelo. Se instala
+para tu usuario **sin pedir administrador**, con acceso en el menú Inicio y en el escritorio, y se desinstala desde
+*Aplicaciones instaladas* (tus registros e informes se conservan). Después, la app **se actualiza sola**. Si prefieres
+no instalar nada, la Release incluye también `ForensiX-Hash.exe` portable. Ambos se comprueban con `SHA256SUMS.txt`, firmado.
 
 ## Cómo se usa
 
@@ -115,7 +119,7 @@ Comparten el mismo motor (`forensix_hash/`):
 
 | | Qué es | Dónde está | Cómo se arranca |
 |---|---|---|---|
-| **App de escritorio** | Programa de Windows (`ForensiX-Hash.exe`) | [`desktop/`](desktop/) | `python -m desktop` o el `.exe` |
+| **App de escritorio** | Programa de Windows con instalador | [`desktop/`](desktop/) | `python -m desktop`, el instalador o el `.exe` |
 | **Web** | Servidor local + interfaz en el navegador | [`web/`](web/) | `python -m web` → http://127.0.0.1:8000 |
 | **Línea de comandos** | Para scripts y automatización | [`forensix_hash/cli.py`](forensix_hash/cli.py) | `python -m forensix_hash` |
 
@@ -161,7 +165,7 @@ py -3 -m venv .venv
 .venv\Scripts\python.exe -m pytest           # pruebas automáticas
 .venv\Scripts\python.exe -m web               # versión web
 .venv\Scripts\python.exe -m desktop           # app de escritorio
-desktop\build_windows.bat                     # dist\ForensiX-Hash.exe + SHA256SUMS.txt
+desktop\build_windows.bat                     # dist\: .exe, instalador y SHA256SUMS.txt
 ```
 
 El PDF se genera con **Microsoft Edge** (incluido en Windows) en modo sin ventana; en Linux sirve Chrome o Chromium.

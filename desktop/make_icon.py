@@ -79,7 +79,34 @@ def social(path: Path) -> None:
     image.convert("RGB").save(path, optimize=True)
 
 
+def installer_images(folder: Path) -> None:
+    """Imágenes del asistente de instalación (Inno Setup): lateral y pequeña, en varias escalas."""
+
+    for scale in (100, 150, 200):
+        width, height = (164 * scale // 100, 314 * scale // 100)
+        side = Image.new("RGB", (width, height))
+        side.paste(_gradient(max(width, height)).resize((width, height)).convert("RGB"))
+        draw = ImageDraw.Draw(side)
+        # «#» blanco grande, con las mismas proporciones que el logo (64x64)
+        s, left, top = width * 0.9 / 64, width * 0.05, height * 0.18
+        stroke = round(5 * s)
+        for x1, y1, x2, y2 in ((27, 18, 23, 46), (41, 18, 37, 46), (18, 27, 47, 27), (16, 37, 45, 37)):
+            points = [(left + x * s, top + y * s) for x, y in ((x1, y1), (x2, y2))]
+            draw.line(points, fill=(255, 255, 255), width=stroke)
+            for px, py in points:
+                draw.ellipse((px - stroke / 2, py - stroke / 2, px + stroke / 2, py + stroke / 2), fill=(255, 255, 255))
+        title = _font(18 * scale // 100, bold=True)
+        draw.text((width // 2, height * 3 // 4), "ForensiX Hash", font=title, fill=(255, 255, 255), anchor="mm")
+        side.save(folder / f"wizard-{scale}.bmp")
+
+        size = 55 * scale // 100
+        small = Image.new("RGB", (size, size), (255, 255, 255))
+        small.paste(logo(512).resize((size, size), Image.LANCZOS), (0, 0), logo(512).resize((size, size), Image.LANCZOS))
+        small.save(folder / f"wizard-small-{scale}.bmp")
+
+
 def main() -> None:
+    installer_images(ICON.parent)
     big = logo(1024)
     ICON.parent.mkdir(parents=True, exist_ok=True)
     big.resize((256, 256), Image.LANCZOS).save(ICON, format="ICO", sizes=SIZES)
