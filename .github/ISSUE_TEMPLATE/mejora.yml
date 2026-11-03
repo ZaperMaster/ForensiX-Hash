@@ -1,0 +1,25 @@
+name: Proponer una mejora
+description: Un algoritmo, un formato de informe o una idea para ForensiX Hash.
+labels: ["mejora"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: ¿Qué te gustaría?
+      description: Por ejemplo, un formato de imagen (E01), un campo nuevo en los datos del caso o un cambio en el informe.
+    validations:
+      required: true
+  - type: textarea
+    id: referencia
+    attributes:
+      label: Referencia
+      description: Si se basa en una norma o guía (ISO/IEC 27037, NIST, RFC…), enlázala.
+  - type: dropdown
+    id: version-app
+    attributes:
+      label: ¿Para qué versión?
+      options:
+        - Todas
+        - App de escritorio
+        - Versión web
+        - Línea de comandos

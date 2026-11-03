@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ForensiX Hash</title>
+  <link rel="icon" href="/static/brand/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+<div class="resize-handles" aria-hidden="true">
+  <div data-edge="top"></div><div data-edge="bottom"></div>
+  <div data-edge="left"></div><div data-edge="right"></div>
+  <div data-edge="top-left"></div><div data-edge="top-right"></div>
+  <div data-edge="bottom-left"></div><div data-edge="bottom-right"></div>
+</div>
+
+<header class="titlebar" id="titlebar">
+  <div class="brand">
+    <img class="logo-mark" src="/static/brand/logo.svg" alt="" draggable="false">
+    <span class="brand-name">Forensi<b>X</b> Hash</span>
+    <span class="version" id="appVersion"></span>
+  </div>
+  <div class="titlebar-actions">
+    <span class="admin-pill" id="adminPill" hidden></span>
+    <button id="language" class="ghost small" type="button">EN</button>
+    <div class="window-controls">
+      <button type="button" id="windowMinimize" aria-label="Minimizar"><svg viewBox="0 0 10 10"><path d="M0 5h10"/></svg></button>
+      <button type="button" id="windowMaximize" aria-label="Maximizar"><svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9"/></svg></button>
+      <button type="button" id="windowClose" class="close" aria-label="Cerrar"><svg viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" aria-label="Secciones">
+    <button class="nav active" data-view="new" type="button">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="nav.new">Nuevo hash</span></button>
+    <button class="nav" data-view="history" type="button">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span data-i18n="nav.history">Registros</span></button>
+    <button class="nav" data-view="verify" type="button">
+      <svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg><span data-i18n="nav.verify">Verificar</span></button>
+    <button class="nav" data-view="custody" type="button">
+      <svg viewBox="0 0 24 24"><path d="M9 7a3 3 0 0 1 3-3h4a3 3 0 0 1 0 6h-2M15 17a3 3 0 0 1-3 3H8a3 3 0 0 1 0-6h2M9 12h6"/></svg><span data-i18n="nav.custody">Custodia</span></button>
+    <div class="sidebar-foot">
+      <button class="nav" data-view="about" type="button">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span data-i18n="nav.about">Acerca de</span></button>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- NUEVO HASH -->
+    <section class="view active" id="view-new">
+      <div class="view-head">
+        <h1 data-i18n="new.title">Nuevo hash</h1>
+        <p class="lead" data-i18n="new.lead">Calcula los hashes de una evidencia, verifícalos con una segunda lectura y genera el informe con los datos del caso.</p>
+      </div>
+
+      <div class="card">
+        <div class="step"><span>1</span><h2 data-i18n="new.what">¿Qué quieres hashear?</h2></div>
+        <div class="kinds" role="tablist">
+          <button class="kind active" data-kind="file" type="button" role="tab">
+            <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z M14 3v4h4"/></svg>
+            <b data-i18n="kind.file">Archivo</b><small data-i18n="kind.file_hint">Un único archivo</small></button>
+          <button class="kind" data-kind="directory" type="button" role="tab">
+            <svg viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></svg>
+            <b data-i18n="kind.directory">Carpeta</b><small data-i18n="kind.directory_hint">Todos sus archivos y subcarpetas</small></button>
+          <button class="kind" data-kind="disk" type="button" role="tab">
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15h4M16 15h.01"/></svg>
+            <b data-i18n="kind.disk">Disco</b><small data-i18n="kind.disk_hint">Disco, pendrive, volumen o imagen</small></button>
+        </div>
+
+        <div id="pathPicker" class="path-row">
+          <input id="targetPath" type="text" spellcheck="false" autocomplete="off" placeholder="Ruta del archivo">
+          <button id="browseButton" type="button" class="secondary" data-i18n="new.browse">Examinar…</button>
+        </div>
+
+        <div id="diskPicker" hidden>
+          <div class="notice warn" id="adminNotice" hidden>
+            <span data-i18n="disk.need_admin">Para leer un disco entero hace falta ejecutar ForensiX Hash como administrador.</span>
+            <button type="button" class="secondary small" id="relaunchAdmin" hidden data-i18n="disk.relaunch">Reiniciar como administrador</button>
+          </div>
+          <div class="disk-toolbar">
+            <span class="muted" data-i18n="disk.choose">Elige el disco completo o uno de sus volúmenes:</span>
+            <button type="button" class="ghost small" id="refreshDisks" data-i18n="disk.refresh">Actualizar</button>
+          </div>
+          <div id="diskList" class="disk-list"></div>
+          <div class="path-row image-row">
+            <input id="imagePath" type="text" spellcheck="false" autocomplete="off" data-i18n-placeholder="disk.image_placeholder" placeholder="…o una imagen de disco (.dd, .raw, .img, .iso)">
+            <button id="browseImage" type="button" class="secondary" data-i18n="new.browse">Examinar…</button>
+          </div>
+          <p class="hint" data-i18n="disk.readonly">Se lee en solo lectura, sector a sector. Para evidencias reales usa un bloqueador de escritura.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="step"><span>2</span><h2 data-i18n="new.case">Datos del caso</h2></div>
+        <form id="caseForm" class="grid" autocomplete="off">
+          <label><span><span data-i18n="case.examiner">Realizado por</span> <em>*</em></span>
+            <input name="examiner" required maxlength="200" data-i18n-placeholder="case.examiner_ph" placeholder="Nombre y apellidos"></label>
+          <label><span data-i18n="case.organization">Organización / unidad</span>
+            <input name="organization" maxlength="200"></label>
+          <label><span data-i18n="case.case_number">Nº de caso</span>
+            <input name="case_number" maxlength="200" placeholder="2026-0001"></label>
+          <label><span data-i18n="case.evidence_number">Nº de evidencia</span>
+            <input name="evidence_number" maxlength="200" placeholder="EV-01"></label>
+          <label class="wide"><span data-i18n="case.description">Descripción de la evidencia</span>
+            <input name="description" maxlength="2000" data-i18n-placeholder="case.description_ph" placeholder="Marca, modelo, nº de serie, estado…"></label>
+          <label class="wide"><span data-i18n="case.notes">Notas</span>
+            <textarea name="notes" rows="2" maxlength="2000"></textarea></label>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="step"><span>3</span><h2 data-i18n="new.algorithms">Algoritmos</h2></div>
+        <div id="algorithms" class="chips"></div>
+        <p class="hint" data-i18n="new.verify_note">Al terminar se verifica automáticamente: la evidencia se lee una segunda vez y los hashes deben coincidir.</p>
+      </div>
+
+      <div class="actions">
+        <p class="error" id="newError" role="alert"></p>
+        <button id="startButton" type="button" class="primary big" data-i18n="new.start">Calcular y verificar</button>
+      </div>
+    </section>
+
+    <!-- PROGRESO -->
+    <section class="view" id="view-progress">
+      <div class="view-head">
+        <h1 id="progressTitle" data-i18n="progress.title">Calculando hashes</h1>
+        <p class="lead mono" id="progressTarget"></p>
+      </div>
+      <div class="card progress-card">
+        <ol class="phases">
+          <li data-phase="hashing"><span>1</span><b data-i18n="progress.hashing">Cálculo</b></li>
+          <li data-phase="verifying"><span>2</span><b data-i18n="progress.verifying">Verificación</b></li>
+          <li data-phase="done"><span>3</span><b data-i18n="progress.done">Informe</b></li>
+        </ol>
+        <div class="bar"><div id="progressBar"></div></div>
+        <div class="progress-stats">
+          <div><small data-i18n="progress.percent">Progreso</small><b id="statPercent">0 %</b></div>
+          <div><small data-i18n="progress.read">Leído</small><b id="statBytes">—</b></div>
+          <div><small data-i18n="progress.speed">Velocidad</small><b id="statSpeed">—</b></div>
+          <div><small data-i18n="progress.eta">Tiempo restante</small><b id="statEta">—</b></div>
+          <div><small data-i18n="progress.files">Archivos</small><b id="statFiles">—</b></div>
+        </div>
+        <p class="current mono" id="statCurrent"></p>
+        <div class="actions"><button id="cancelButton" type="button" class="danger" data-i18n="progress.cancel">Cancelar</button></div>
+      </div>
+    </section>
+
+    <!-- DETALLE DE UN REGISTRO -->
+    <section class="view" id="view-record">
+      <div class="view-head row">
+        <div>
+          <button type="button" class="ghost small back" data-view="history" data-i18n="record.back">← Registros</button>
+          <h1 id="recordTitle"></h1>
+          <p class="lead mono" id="recordTarget"></p>
+        </div>
+      </div>
+      <div id="recordVerdict" class="verdict"></div>
+
+      <div class="record-grid">
+        <div class="card span2">
+          <div class="card-head"><h2 data-i18n="record.hashes">Hashes</h2>
+            <span class="muted small" id="recordSize"></span></div>
+          <div id="recordHashes" class="hashes"></div>
+          <div class="compare">
+            <input id="compareInput" type="text" spellcheck="false" data-i18n-placeholder="record.compare_ph" placeholder="Pega un hash conocido para compararlo…">
+            <span id="compareResult"></span>
+          </div>
+          <p class="hint" id="dirHashNote" hidden data-i18n="record.dir_note">En una carpeta, cada hash es el de su manifiesto (lista «hash  ruta» ordenada). Expórtalo como .sha256 para comprobarlo con cualquier herramienta.</p>
+        </div>
+
+        <div class="card">
+          <h2 data-i18n="record.export">Informe</h2>
+          <div class="export-buttons">
+            <button type="button" class="primary" data-export="pdf">PDF</button>
+            <button type="button" class="secondary" data-export="html">HTML</button>
+            <button type="button" class="secondary" data-export="txt">TXT</button>
+            <button type="button" class="secondary" data-export="json">JSON</button>
+            <button type="button" class="secondary" data-export="csv">CSV</button>
+          </div>
+          <div class="export-buttons" id="manifestButtons"></div>
+          <p class="hint" data-i18n="record.export_hint">El JSON se puede importar en otro equipo para verificar la evidencia allí.</p>
+          <p class="hint" id="exportStatus" role="status"></p>
+        </div>
+
+        <div class="card">
+          <h2 data-i18n="record.reverify">Verificar de nuevo</h2>
+          <form id="verifyForm" class="stack" autocomplete="off">
+            <label><span><span data-i18n="record.verifier">Verificado por</span> <em>*</em></span><input name="examiner" required maxlength="200"></label>
+            <label><span data-i18n="record.copy_path">Comprobar una copia (opcional)</span>
+              <span class="path-row"><input name="target" spellcheck="false" data-i18n-placeholder="record.copy_ph" placeholder="Misma evidencia en otra ruta"><button type="button" class="secondary small" id="browseCopy" data-i18n="new.browse">Examinar…</button></span></label>
+            <label><span data-i18n="case.notes">Notas</span><input name="notes" maxlength="2000"></label>
+            <button type="submit" class="primary" data-i18n="record.verify_now">Verificar ahora</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2 data-i18n="record.case">Datos del caso</h2>
+          <dl id="recordCase" class="facts"></dl>
+        </div>
+        <div class="card">
+          <h2 data-i18n="record.evidence">Evidencia</h2>
+          <dl id="recordEvidence" class="facts"></dl>
+        </div>
+
+        <div class="card span2">
+          <h2 data-i18n="record.timeline">Cronología</h2>
+          <ol id="recordTimeline" class="timeline"></ol>
+        </div>
+
+        <div class="card span2" id="filesCard" hidden>
+          <div class="card-head"><h2 data-i18n="record.files">Archivos</h2>
+            <input id="fileFilter" type="search" class="small" data-i18n-placeholder="record.filter" placeholder="Filtrar…"></div>
+          <div class="table-wrap"><table class="files"><thead><tr><th data-i18n="record.path">Ruta</th><th>Bytes</th><th id="filesAlg">SHA-256</th></tr></thead><tbody id="filesBody"></tbody></table></div>
+          <p class="hint" id="filesMore"></p>
+        </div>
+
+        <div class="card span2">
+          <h2 data-i18n="record.integrity">Integridad del registro</h2>
+          <p id="recordSeal"></p>
+          <p class="hint" data-i18n="record.seal_hint">El sello es el SHA-256 del registro. Si alguien edita el JSON (un hash, una fecha, un nombre), deja de coincidir.</p>
+          <div class="actions left"><button type="button" class="ghost danger-text small" id="deleteRecord" data-i18n="record.delete">Eliminar registro</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REGISTROS -->
+    <section class="view" id="view-history">
+      <div class="view-head row">
+        <div><h1 data-i18n="history.title">Registros</h1>
+          <p class="lead" data-i18n="history.lead">Todas las evidencias hasheadas en este equipo.</p></div>
+        <input id="historySearch" type="search" data-i18n-placeholder="history.search" placeholder="Buscar por caso, evidencia, ruta o persona…">
+      </div>
+      <div id="historyList" class="history"></div>
+    </section>
+
+    <!-- VERIFICAR -->
+    <section class="view" id="view-verify">
+      <div class="view-head">
+        <h1 data-i18n="verify.title">Verificar</h1>
+        <p class="lead" data-i18n="verify.lead">Comprueba que una evidencia no ha cambiado desde que se hasheó.</p>
+      </div>
+      <div class="card">
+        <h2 data-i18n="verify.import_title">Desde un informe JSON</h2>
+        <p data-i18n="verify.import_text">Importa el informe JSON de ForensiX Hash (también de otro equipo). Se comprueba su sello y después puedes verificar la evidencia.</p>
+        <label class="drop" id="dropZone">
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+          <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+          <span data-i18n="verify.drop">Arrastra aquí el informe .json o haz clic para elegirlo</span>
+        </label>
+        <p class="error" id="importError" role="alert"></p>
+      </div>
+      <div class="card">
+        <h2 data-i18n="verify.from_history">Desde los registros</h2>
+        <p data-i18n="verify.from_history_text">Abre un registro y pulsa «Verificar ahora». Cada verificación queda anotada con quién la hizo y cuándo.</p>
+        <button type="button" class="secondary" data-view="history" data-i18n="verify.open_history">Ver registros</button>
+      </div>
+    </section>
+
+    <!-- CUSTODIA -->
+    <section class="view" id="view-custody">
+      <div class="view-head">
+        <h1 data-i18n="custody.title">Cadena de custodia</h1>
+        <p class="lead" data-i18n="custody.lead">Cada operación queda anotada y enlazada con la anterior por su hash: si se borra o edita un evento, la cadena se rompe.</p>
+      </div>
+      <div id="custodyStatus" class="verdict"></div>
+      <div class="card"><div class="table-wrap"><table class="custody">
+        <thead><tr><th>#</th><th data-i18n="custody.time">Fecha y hora</th><th data-i18n="custody.action">Evento</th><th data-i18n="custody.evidence">Evidencia</th><th data-i18n="custody.by">Por</th><th>Hash</th></tr></thead>
+        <tbody id="custodyBody"></tbody></table></div></div>
+    </section>
+
+    <!-- ACERCA DE -->
+    <section class="view" id="view-about">
+      <div class="view-head"><h1 data-i18n="about.title">Acerca de ForensiX Hash</h1></div>
+      <div class="card about">
+        <img src="/static/brand/logo.svg" alt="" width="72" height="72">
+        <div>
+          <p data-i18n="about.text">Herramienta de hashing forense: archivos, carpetas y discos, con verificación automática, datos del caso, cadena de custodia e informes.</p>
+          <dl class="facts" id="aboutFacts"></dl>
+          <p class="hint" data-i18n="about.legal">Usa la herramienta solo sobre evidencias propias o con autorización. Para evidencias reales, conecta los discos con un bloqueador de escritura.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Explorador de archivos (versión web) -->
+<dialog id="browser" class="browser">
+  <form method="dialog" class="browser-inner">
+    <div class="card-head"><h2 data-i18n="browser.title">Elegir</h2><button class="ghost small" value="cancel" data-i18n="browser.cancel">Cancelar</button></div>
+    <div class="path-row"><button type="button" class="secondary small" id="browserUp">↑</button><input id="browserPath" class="mono" spellcheck="false"></div>
+    <ul id="browserList" class="browser-list"></ul>
+    <div class="actions"><button type="button" class="primary" id="browserChoose" data-i18n="browser.choose_folder">Elegir esta carpeta</button></div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script src="/static/js/i18n.js"></script>
+<script src="/static/js/window.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

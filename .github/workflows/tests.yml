@@ -1,0 +1,42 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest (Python ${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.13", "3.15"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Instalar dependencias
+        run: python -m pip install -r requirements.txt
+
+      - name: Ejecutar los tests
+        run: python -m pytest -q
+
+      - name: Comprobar el manifiesto con sha256sum
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p /tmp/ev/sub && echo hola > /tmp/ev/a.txt && echo adios > /tmp/ev/sub/b.txt
+          export FORENSIX_HASH_HOME=/tmp/fxh
+          python -m forensix_hash dir /tmp/ev --examiner "CI" --out /tmp/manifiesto.sha256 --out /tmp/informe.json
+          cd /tmp/ev && sha256sum -c /tmp/manifiesto.sha256
+          test "$(sha256sum /tmp/manifiesto.sha256 | cut -d' ' -f1)" = "$(python -c "import json;print(json.load(open('/tmp/informe.json'))['hashes']['sha256'])")"

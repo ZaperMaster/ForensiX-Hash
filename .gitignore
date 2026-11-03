@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.pytest_cache/
+build/
+dist/
+*.spec
+# Pruebas locales: imÃ¡genes de disco e informes de evidencias reales
+*.dd
+*.raw
+*.E01
+informes/
+# Configuración local del editor
+.claude/
