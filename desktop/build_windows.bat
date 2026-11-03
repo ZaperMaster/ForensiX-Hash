@@ -51,7 +51,8 @@ del /q "dist\ForensiX-Hash_*_x64-setup.exe" 2>nul
 if errorlevel 1 goto :error
 
 rem Hashes de la Release (como en Lumen: SHA256SUMS.txt).
-powershell -NoProfile -Command "Get-ChildItem dist\*.exe | ForEach-Object { '{0}  {1}' -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name } | Set-Content -Encoding ascii dist\SHA256SUMS.txt"
+rem Saltos de línea LF, para que también se compruebe con sha256sum -c en Linux y macOS.
+powershell -NoProfile -Command "$l = Get-ChildItem dist\*.exe | ForEach-Object { '{0}  {1}' -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name }; [IO.File]::WriteAllText('dist\SHA256SUMS.txt', (($l -join \"`n\") + \"`n\"))"
 if errorlevel 1 goto :error
 
 echo.
