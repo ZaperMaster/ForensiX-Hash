@@ -7,6 +7,7 @@ web o la línea de comandos, sin dependencias extra.
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -47,9 +48,12 @@ def html_to_pdf(html: str, target: Path) -> Path:
         source = Path(work) / "informe.html"
         source.write_text(html, encoding="utf-8")
         temporary = Path(work) / "informe.pdf"
+        # En Linux (p. ej. Ubuntu 24) el sandbox de Chrome no arranca si los user namespaces
+        # están restringidos. Solo se imprime el HTML del propio informe, generado aquí.
+        sandbox = ["--no-sandbox"] if sys.platform.startswith("linux") else []
         subprocess.run(
             [browser, "--headless", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
-             "--disable-extensions", f"--user-data-dir={Path(work) / 'perfil'}", "--no-pdf-header-footer",
+             "--disable-extensions", *sandbox, f"--user-data-dir={Path(work) / 'perfil'}", "--no-pdf-header-footer",
              f"--print-to-pdf={temporary}", source.as_uri()],
             capture_output=True, timeout=TIMEOUT,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
