@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from . import devices, report, store
+from . import devices, paths, report, store
 
 TIMEOUT = 120
 _CANDIDATES = [
@@ -71,10 +71,9 @@ def check_destination(record_or_kind, target: str, folder: str | Path) -> Path:
     """Comprueba que el informe no se guarda dentro de la evidencia (la modificaría)."""
 
     kind = record_or_kind["kind"] if isinstance(record_or_kind, dict) else record_or_kind
-    folder = Path(folder).expanduser()
-    if not str(folder).strip():
+    if not str(folder or "").strip():
         raise ValueError("Elige dónde guardar el informe.")
-    resolved = folder.resolve()
+    resolved = Path(paths.local_path(str(folder))).resolve()  # Solo unidades locales
     if kind == "directory":
         evidence = Path(target).resolve()
         if resolved == evidence or evidence in resolved.parents:

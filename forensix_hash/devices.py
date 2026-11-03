@@ -231,6 +231,16 @@ def describe_device(path: str) -> dict:
     return {"kind": "disk", "path": path}
 
 
+def known_device(path: str) -> str | None:
+    """La ruta tal y como la lista el sistema, si ese disco o volumen existe; si no, None."""
+
+    for disk in list_devices():
+        for candidate in [disk["path"], *(v["path"] for v in disk["volumes"])]:
+            if candidate.lower() == path.strip().lower():
+                return candidate
+    return None
+
+
 def letters_of(path: str) -> set[str]:
     """Letras de unidad que viven en un disco o volumen (p. ej. {'D', 'E'})."""
 

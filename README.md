@@ -1,56 +1,84 @@
-# ForensiX Hash
-
-[![Tests](https://github.com/ZaperMaster/ForensiX-Hash/actions/workflows/tests.yml/badge.svg)](https://github.com/ZaperMaster/ForensiX-Hash/actions/workflows/tests.yml)
-[![CodeQL](https://img.shields.io/badge/CodeQL-activo-2f6bff?logo=github)](https://github.com/ZaperMaster/ForensiX-Hash/security/code-scanning)
-[![Versión](https://img.shields.io/github/v/release/ZaperMaster/ForensiX-Hash?label=versi%C3%B3n&color=2f6bff)](https://github.com/ZaperMaster/ForensiX-Hash/releases/latest)
-![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.13%2B-3776AB?logo=python&logoColor=white)
-[![Licencia: PolyForm Strict](https://img.shields.io/badge/licencia-PolyForm%20Strict-lightgrey)](LICENSE)
-[![Web](https://img.shields.io/badge/web-zapermaster.github.io-2f6bff)](https://zapermaster.github.io/ForensiX-Hash/)
-
-Herramienta de **hashing forense** de la marca **ForensiX**: calcula los hashes de un **archivo**, una
-**carpeta** o un **disco completo** (también pendrives, volúmenes e imágenes `.dd`/`.raw`/`.iso`), los
-**verifica automáticamente** con una segunda lectura y guarda un **informe PDF** como comprobante, con quién
-lo hizo, cuándo se calculó y cuándo se verificó.
-
-**Descargar:** [última versión](https://github.com/ZaperMaster/ForensiX-Hash/releases/latest) →
-`ForensiX-Hash.exe` (con `SHA256SUMS.txt` para comprobar la descarga). Una vez abierta, la app **se actualiza
-sola**. Novedades: [CHANGELOG.md](CHANGELOG.md). Web del proyecto:
-**[zapermaster.github.io/ForensiX-Hash](https://zapermaster.github.io/ForensiX-Hash/)**.
-
-## Capturas
-
 <p align="center">
-  <img src="docs/capturas/resultado.png" alt="Registro verificado de un pendrive: hashes, informe PDF y verificación" width="900">
+  <img src="docs/icon.png" alt="" width="88">
 </p>
 
-| 1 · Evidencia | 4 · Guardar el informe |
-|---|---|
-| ![Asistente: elegir archivo, carpeta o disco](docs/capturas/nuevo.png) | ![Asistente: carpeta del PDF y resumen](docs/capturas/guardar.png) |
+<h1 align="center">ForensiX Hash</h1>
 
-| Proceso | Informe PDF |
-|---|---|
-| ![Cálculo y verificación con velocidad y tiempo restante](docs/capturas/progreso.png) | ![Informe con el resultado, los hashes, la cronología y las firmas](docs/capturas/informe.png) |
+<p align="center">
+  <b>Hashes forenses verificados de archivos, carpetas y discos, con informe PDF como comprobante.</b><br>
+  App de escritorio para Windows · web local · línea de comandos
+</p>
 
-| Discos | Tema oscuro y ajustes |
-|---|---|
-| ![Lista de discos y volúmenes con modelo, número de serie y conexión](docs/capturas/discos.png) | ![Ajustes con tema, idioma y actualizaciones en tema oscuro](docs/capturas/ajustes.png) |
+<p align="center">
+  <a href="https://github.com/ZaperMaster/ForensiX-Hash/actions/workflows/tests.yml"><img src="https://github.com/ZaperMaster/ForensiX-Hash/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/ZaperMaster/ForensiX-Hash/security/code-scanning"><img src="https://img.shields.io/badge/CodeQL-activo-2f6bff?logo=github" alt="CodeQL"></a>
+  <a href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest"><img src="https://img.shields.io/github/v/release/ZaperMaster/ForensiX-Hash?label=versi%C3%B3n&color=2f6bff" alt="Versión"></a>
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white" alt="Windows 10 y 11">
+  <img src="https://img.shields.io/badge/Python-3.13%2B-3776AB?logo=python&logoColor=white" alt="Python 3.13+">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-PolyForm%20Strict-lightgrey" alt="Licencia PolyForm Strict"></a>
+  <a href="https://zapermaster.github.io/ForensiX-Hash/"><img src="https://img.shields.io/badge/web-zapermaster.github.io-2f6bff" alt="Web"></a>
+</p>
 
-<sub>Pruebas con un pendrive USB SanDisk de 64 GB del propio autor.</sub>
+<p align="center">
+  <a href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest/download/ForensiX-Hash.exe"><b>⬇ Descargar para Windows</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://zapermaster.github.io/ForensiX-Hash/">Web del proyecto</a>
+  &nbsp;·&nbsp;
+  <a href="CHANGELOG.md">Novedades</a>
+</p>
+
+<p align="center">
+  <img src="docs/capturas/portada.png" alt="ForensiX Hash en tema claro y oscuro: registro verificado de un pendrive" width="920">
+</p>
+
+Herramienta de **hashing forense** de la marca **ForensiX**. Calcula los hashes de un **archivo**, una **carpeta** o un
+**disco completo** (pendrives, volúmenes e imágenes `.dd`/`.raw`/`.iso`), los **verifica** con una segunda lectura y
+guarda un **informe PDF** con quién lo hizo, cuándo se calculó y cuándo se verificó. El `.exe` no necesita instalación,
+se comprueba con `SHA256SUMS.txt` firmado y **se actualiza solo**.
 
 ## Cómo se usa
 
 Un asistente de cuatro pasos y el proceso:
 
-1. **Evidencia** — archivo, carpeta o disco (con modelo, número de serie y conexión) o imagen de disco.
-2. **Datos** — quién lo realiza, organización, nº de caso, nº de evidencia, descripción y notas.
-3. **Hash** — MD5, SHA-1 y SHA-256 por defecto; también SHA-512, SHA3-256 y BLAKE2b.
-4. **Guardar** — la carpeta del informe PDF (no puede estar dentro de la evidencia: la modificaría).
-5. **Proceso** — cálculo, **verificación automática** con una segunda lectura y el **informe PDF** en la carpeta
-   elegida.
+| 1 · Evidencia | 2 · Datos |
+|---|---|
+| ![Paso 1: elegir archivo, carpeta o disco](docs/capturas/paso1-evidencia.png) | ![Paso 2: quién lo hace, nº de caso y de evidencia](docs/capturas/paso2-datos.png) |
+| **Archivo, carpeta o disco** (con modelo, nº de serie y conexión) o una imagen de disco. | **Quién lo realiza**, organización, nº de caso, nº de evidencia, descripción y notas. |
 
-Después, desde **Registros**, se puede volver a verificar cuando se quiera (otra persona, otro día, o una
-**copia** en otra ruta), y cada verificación genera su propio PDF.
+| 3 · Hash | 4 · Guardar |
+|---|---|
+| ![Paso 3: algoritmos](docs/capturas/paso3-hash.png) | ![Paso 4: carpeta del informe PDF y resumen](docs/capturas/paso4-guardar.png) |
+| **MD5, SHA-1 y SHA-256** por defecto; también SHA-512, SHA3-256 y BLAKE2b. | **Carpeta del informe PDF** (nunca dentro de la evidencia) y resumen antes de empezar. |
+
+**5 · Proceso**: cálculo, **verificación automática** con una segunda lectura y el **informe PDF** en la carpeta elegida.
+
+<p align="center">
+  <img src="docs/capturas/progreso.png" alt="Cálculo con progreso, velocidad y tiempo restante" width="820">
+</p>
+
+## Resultado e informe
+
+| Verificado | No coincide |
+|---|---|
+| ![Registro verificado de un pendrive de 64 GB](docs/capturas/resultado.png) | ![Una carpeta modificada después de hashearla: NO COINCIDE](docs/capturas/no-coincide.png) |
+| Se vuelve a leer la evidencia y da **los mismos hashes**. | Si la evidencia cambia, la verificación lo detecta y dice **quién y cuándo** la comprobó. |
+
+<p align="center">
+  <img src="docs/capturas/informe.png" alt="Informe PDF con el resultado, los datos del caso, la evidencia y los hashes" width="640"><br>
+  <sub>El informe PDF: resultado, datos del caso, evidencia, hashes, cronología, cadena de custodia y firmas.</sub>
+</p>
+
+## Registros, custodia y temas
+
+| Registros | Cadena de custodia |
+|---|---|
+| ![Lista de evidencias hasheadas con su estado](docs/capturas/registros.png) | ![Eventos encadenados por hash: cadena íntegra](docs/capturas/custodia.png) |
+
+| Discos del equipo | Tema oscuro y ajustes |
+|---|---|
+| ![Discos y volúmenes con modelo, nº de serie y conexión](docs/capturas/discos.png) | ![Ajustes en tema oscuro: tema, idioma y actualizaciones](docs/capturas/ajustes.png) |
+
+<sub>Pruebas reales con un pendrive USB SanDisk de 64 GB del autor; los demás datos son de demostración.</sub>
 
 ## Qué incluye
 

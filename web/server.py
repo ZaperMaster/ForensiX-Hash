@@ -7,7 +7,6 @@ CORS) y un Host local (evita ataques de DNS rebinding).
 
 import json
 import os
-import string
 import subprocess
 from pathlib import Path
 
@@ -16,7 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from forensix_hash import APP_NAME, REPO_URL, __version__, devices, pdf, report, store, updater
+from forensix_hash import APP_NAME, REPO_URL, __version__, devices, paths, pdf, report, store, updater
 from forensix_hash.hasher import ALGORITHMS, DEFAULT_ALGORITHMS
 from forensix_hash.jobs import JobManager, error_message
 from forensix_hash.record import CASE_FIELDS, seal_ok
@@ -162,15 +161,11 @@ def browse(path: str = ""):
     """Contenido de una carpeta para elegir archivo o carpeta en la versión web."""
 
     if not path:
-        if os.name == "nt":
-            roots = [f"{letter}:\\" for letter in string.ascii_uppercase if os.path.exists(f"{letter}:\\")]
-        else:
-            roots = ["/"]
-        return {"path": "", "parent": None, "entries": [{"name": r, "path": r, "dir": True} for r in roots]
+        return {"path": "", "parent": None,
+                "entries": [{"name": r, "path": r, "dir": True} for r in paths.local_roots()]
                 + [{"name": "~", "path": str(Path.home()), "dir": True}]}
-    folder = Path(path).expanduser()
     try:
-        folder = folder.resolve()
+        folder = Path(paths.local_path(path))  # Solo unidades locales, nunca rutas de red
         entries = []
         with os.scandir(folder) as items:
             for item in items:
@@ -180,7 +175,7 @@ def browse(path: str = ""):
                 except OSError:
                     continue
                 entries.append({"name": item.name, "path": item.path, "dir": is_dir, "size": size})
-    except OSError as error:
+    except (OSError, ValueError) as error:
         raise _bad_request(error) from error
     entries.sort(key=lambda e: (not e["dir"], e["name"].lower()))
     parent = str(folder.parent) if folder.parent != folder else ""

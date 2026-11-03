@@ -701,7 +701,7 @@ function renderHistory() {
         el("div", { class: "sub" }, sub),
         el("div", { class: "sub mono" }, `SHA-256 ${item.hashes.sha256 || Object.values(item.hashes).at(-1)}`)),
       el("div", { class: "history-side" }, el("span", { class: `pill ${status}` }, t(`status.${status}`)),
-        el("div", { class: "sub" }, t("history.verifications", item.verifications))));
+        el("div", { class: "sub" }, t(item.verifications === 1 ? "history.verification" : "history.verifications", item.verifications))));
   }));
 }
 

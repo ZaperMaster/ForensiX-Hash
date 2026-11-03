@@ -11,7 +11,7 @@ from pathlib import Path
 from threading import Event
 from time import monotonic
 
-from . import devices, store
+from . import devices, paths, store
 from .hasher import Cancelled, MultiHasher, normalize_algorithms
 from .progress import Progress
 from .record import KINDS, clean_case, environment, now
@@ -46,8 +46,11 @@ def _resolve_target(kind: str, target: str) -> str:
     if kind not in KINDS:
         raise ValueError(f"Tipo de evidencia no válido: {kind}")
     if kind == "disk" and devices.is_raw_device(target):
-        return target
-    path = Path(target).expanduser()
+        known = devices.known_device(target)  # Solo discos y volúmenes que existen en el equipo
+        if not known:
+            raise FileNotFoundError(f"No existe ese disco o volumen: {target}")
+        return known
+    path = Path(paths.local_path(target))
     if not path.exists():
         raise FileNotFoundError(f"No existe: {target}")
     if kind == "file" and not path.is_file():

@@ -63,7 +63,7 @@ const I18N = (() => {
   // Textos comunes a los dos idiomas que crea app.js (se añaden a DYNAMIC).
   const EXTRA = {
     es: {
-      "err.output": "Elige dónde guardar el informe PDF.", "copy": "Copiar",
+      "err.output": "Elige dónde guardar el informe PDF.", "copy": "Copiar", "history.verification": "1 verificación",
       "sum.evidence": "Evidencia", "sum.algorithms": "Hash",
       "alg.md5": "Compatibilidad con herramientas antiguas", "alg.sha1": "Habitual en informes periciales",
       "alg.sha256": "Recomendado (estándar actual)", "alg.sha512": "Más largo, muy robusto",
@@ -79,7 +79,7 @@ const I18N = (() => {
       "about.reports": "Informes",
     },
     en: {
-      "err.output": "Choose where to save the PDF report.", "copy": "Copy",
+      "err.output": "Choose where to save the PDF report.", "copy": "Copy", "history.verification": "1 verification",
       "sum.evidence": "Evidence", "sum.algorithms": "Hash",
       "alg.md5": "Compatibility with older tools", "alg.sha1": "Common in forensic reports",
       "alg.sha256": "Recommended (current standard)", "alg.sha512": "Longer, very robust",

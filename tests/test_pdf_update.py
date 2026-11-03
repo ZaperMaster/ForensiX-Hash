@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import json
+import os
 import time
 
 import pytest
@@ -42,7 +43,28 @@ def test_report_cannot_go_inside_hashed_folder(evidence, tmp_path):
     assert pdf.check_destination("file", str(evidence / "a.txt"), evidence)
 
 
+@pytest.mark.skipif(os.name != "nt", reason="Rutas de red de Windows")
+def test_network_paths_are_rejected(tmp_path):
+    from forensix_hash import paths
+
+    for network in (r"\\servidor\recurso\evidencia.dd", r"\\?\UNC\servidor\recurso"):
+        with pytest.raises(ValueError):
+            paths.local_path(network)
+        with pytest.raises(ValueError):
+            engine.acquire("file", network, None, CASE)
+    assert paths.local_path(str(tmp_path)) == os.path.normpath(str(tmp_path))
+    client = TestClient(app)
+    assert client.get("/api/browse", params={"path": r"\\servidor\recurso"}, headers=HEADERS).status_code == 400
+
+
+def test_unknown_disk_is_rejected():
+    with pytest.raises(FileNotFoundError):
+        engine.acquire("disk", r"\\.\PhysicalDrive99" if os.name == "nt" else "/dev/nodisk99", None, CASE)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Letras de unidad de Windows")
 def test_report_cannot_go_on_hashed_volume(monkeypatch):
+    monkeypatch.setattr(pdf.paths, "local_roots", lambda: ["C:\\", "D:\\"])
     monkeypatch.setattr(pdf.devices, "is_raw_device", lambda path: True)
     monkeypatch.setattr(pdf.devices, "letters_of", lambda path: {"D", "E"})
     with pytest.raises(ValueError):
