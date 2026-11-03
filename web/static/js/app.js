@@ -743,6 +743,8 @@ window.addEventListener("pywebviewready", () => {
   await openLink();
 })();
 
+window.addEventListener("hashchange", () => { if (state.info) openLink(); });
+
 // #record=<id>, #job=<id>, #view=<vista> o #kind=<file|directory|disk>
 async function openLink() {
   const params = new URLSearchParams(location.hash.slice(1));
@@ -754,6 +756,7 @@ async function openLink() {
     } else if (params.get("record")) {
       await openRecord(params.get("record"));
     } else if (params.get("kind")) {
+      show("new");
       setKind(params.get("kind"));
     } else if (params.get("view")) {
       show(params.get("view"));
