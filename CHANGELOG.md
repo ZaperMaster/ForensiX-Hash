@@ -15,5 +15,5 @@ Primera versión estable.
   ruta), con archivos añadidos, eliminados y modificados en las carpetas.
 - **Informe PDF** como comprobante en la carpeta elegida (nunca dentro de la evidencia), en español o inglés.
 - **Registros sellados** y **cadena de custodia** encadenada por hashes.
-- **Ajustes**: tema claro, oscuro o del sistema; idioma; **actualizaciones automáticas firmadas** (Ed25519).
+- **Ajustes**: tema claro u oscuro (la primera vez, el de Windows); idioma; **actualizaciones automáticas firmadas** (Ed25519).
 - App de escritorio para Windows a pantalla completa, versión web local y línea de comandos.

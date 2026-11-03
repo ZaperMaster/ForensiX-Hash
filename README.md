@@ -76,7 +76,7 @@ Después, desde **Registros**, se puede volver a verificar cuando se quiera (otr
   se borra o edita uno, la cadena se rompe y se ve en qué punto.
 
 **Ajustes**
-- **Tema** claro, oscuro o el del sistema; **idioma** español o inglés.
+- **Tema** claro u oscuro (la primera vez, el de Windows) e **idioma** español o inglés.
 - **Actualizaciones automáticas firmadas**: al abrir, la app mira si hay una versión nueva en GitHub; se instala con un
   clic solo si la **firma Ed25519** y el SHA-256 del `.exe` son correctos. Se puede desactivar.
 - La app de escritorio se abre a **pantalla completa**.

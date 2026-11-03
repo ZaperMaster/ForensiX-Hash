@@ -7,11 +7,11 @@
   <link rel="icon" href="/static/brand/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/styles.css">
   <script>
-    // Tema antes de pintar la página, para que no parpadee (claro, oscuro o el del sistema).
+    // Tema antes de pintar la página, para que no parpadee. Sin elegir aún, el de Windows.
     (function () {
-      var theme = "system";
-      try { theme = localStorage.getItem("forensix.theme") || "system"; } catch (e) {}
-      if (theme === "system") theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      var theme = "";
+      try { theme = localStorage.getItem("forensix.theme") || ""; } catch (e) {}
+      if (theme !== "light" && theme !== "dark") theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
       document.documentElement.dataset.theme = theme;
     })();
   </script>
@@ -29,16 +29,7 @@
     <img class="logo-mark" src="/static/brand/logo.svg" alt="" draggable="false">
     <span class="brand-name">Forensi<b>X</b> Hash</span>
   </div>
-  <nav class="tabs" aria-label="Secciones">
-    <button class="nav active" data-view="new" type="button"><span data-i18n="nav.new">Nuevo hash</span></button>
-    <button class="nav" data-view="history" type="button"><span data-i18n="nav.history">Registros</span></button>
-    <button class="nav" data-view="custody" type="button"><span data-i18n="nav.custody">Custodia</span></button>
-  </nav>
   <div class="titlebar-actions">
-    <span class="admin-pill" id="adminPill" hidden></span>
-    <button class="icon-button nav-settings" data-view="settings" type="button" data-i18n-title="nav.settings" title="Ajustes">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-    </button>
     <div class="window-controls">
       <button type="button" id="windowMinimize" aria-label="Minimizar"><svg viewBox="0 0 10 10"><path d="M0 5h10"/></svg></button>
       <button type="button" id="windowMaximize" aria-label="Maximizar"><svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9"/></svg></button>
@@ -55,6 +46,16 @@
 </div>
 
 <div class="layout">
+  <nav class="sidebar" aria-label="Secciones">
+    <button class="nav active" data-view="new" type="button">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="nav.new">Nuevo hash</span></button>
+    <button class="nav" data-view="history" type="button">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span data-i18n="nav.history">Registros</span></button>
+    <button class="nav" data-view="custody" type="button">
+      <svg viewBox="0 0 24 24"><path d="M9 7a3 3 0 0 1 3-3h4a3 3 0 0 1 0 6h-2M15 17a3 3 0 0 1-3 3H8a3 3 0 0 1 0-6h2M9 12h6"/></svg><span data-i18n="nav.custody">Custodia</span></button>
+    <button class="nav nav-settings" data-view="settings" type="button">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-i18n="nav.settings">Ajustes</span></button>
+  </nav>
   <main id="main">
     <!-- NUEVO HASH -->
     <section class="view active" id="view-new">
@@ -282,11 +283,10 @@
 
       <div class="card settings">
         <div class="setting">
-          <div><h2 data-i18n="settings.theme">Tema</h2><p class="hint" data-i18n="settings.theme_hint">Claro, oscuro o el mismo que Windows.</p></div>
+          <div><h2 data-i18n="settings.theme">Tema</h2><p class="hint" data-i18n="settings.theme_hint">La primera vez se usa el de Windows.</p></div>
           <div class="segmented" id="themeChoice" role="radiogroup">
             <button type="button" data-theme-choice="light" data-i18n="settings.light">Claro</button>
             <button type="button" data-theme-choice="dark" data-i18n="settings.dark">Oscuro</button>
-            <button type="button" data-theme-choice="system" data-i18n="settings.system">Sistema</button>
           </div>
         </div>
         <div class="setting">

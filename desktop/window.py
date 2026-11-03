@@ -23,8 +23,11 @@ from web.server import app
 
 
 APP_USER_MODEL_ID = "ForensiX.Hash.Desktop"
-BACKGROUND_COLOR = "#f6f6f8"  # Igual que --bg (tema claro) en static/css/styles.css
-BORDER_COLOR = "#d4d4dc"  # Igual que --border-strong
+# Colores de la ventana por tema: igual que --bg y --border-strong en static/css/styles.css
+THEMES = {
+    "light": {"background": "#f6f6f8", "border": "#d4d4dc", "dark": 0},
+    "dark": {"background": "#0e0f12", "border": "#2a2b32", "dark": 1},
+}
 WINDOW_SIZE = (1240, 860)
 MIN_WINDOW_SIZE = (820, 600)
 SERVER_START_TIMEOUT = 15
@@ -59,27 +62,45 @@ def set_app_user_model_id() -> None:
         pass
 
 
-def style_frame(hwnd: int) -> None:
+def windows_theme() -> str:
+    """'dark' o 'light' según el modo de aplicaciones de Windows (la primera vez se usa ese)."""
+
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                            r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize") as key:
+            return "light" if winreg.QueryValueEx(key, "AppsUseLightTheme")[0] else "dark"
+    except OSError:
+        return "light"
+
+
+def _dwm_attribute(hwnd: int, attribute: int, value: int) -> None:
+    dwm_set_attribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
+    dwm_set_attribute.argtypes = [wintypes.HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+    data = ctypes.c_int(value)
+    dwm_set_attribute(hwnd, attribute, ctypes.byref(data), ctypes.sizeof(data))
+
+
+def paint_frame(hwnd: int, theme: str) -> None:
+    """Borde fino y modo oscuro de Windows con los colores del tema de la app."""
+
+    DWMWA_USE_IMMERSIVE_DARK_MODE, DWMWA_BORDER_COLOR = 20, 34
+    colors = THEMES.get(theme, THEMES["light"])
+    _dwm_attribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, colors["dark"])
+    _dwm_attribute(hwnd, DWMWA_BORDER_COLOR, _colorref(colors["border"]))
+
+
+def style_frame(hwnd: int, theme: str) -> None:
     """Esquinas redondeadas y borde fino (Windows 11) en la ventana sin marco.
 
     También permite minimizarla desde la barra de tareas, que en una ventana
     sin marco solo funciona si tiene el estilo WS_MINIMIZEBOX.
     """
 
-    dwm_set_attribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
-    dwm_set_attribute.argtypes = [wintypes.HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
-
-    def set_attribute(attribute: int, value: int) -> None:
-        data = ctypes.c_int(value)
-        dwm_set_attribute(hwnd, attribute, ctypes.byref(data), ctypes.sizeof(data))
-
-    DWMWA_USE_IMMERSIVE_DARK_MODE = 20
     DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND = 33, 2
-    DWMWA_BORDER_COLOR = 34
-
-    set_attribute(DWMWA_USE_IMMERSIVE_DARK_MODE, 0)
-    set_attribute(DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND)
-    set_attribute(DWMWA_BORDER_COLOR, _colorref(BORDER_COLOR))
+    _dwm_attribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND)
+    paint_frame(hwnd, theme)
 
     GWL_STYLE, WS_MINIMIZEBOX, WS_SYSMENU = -16, 0x00020000, 0x00080000
     user32 = ctypes.windll.user32
@@ -119,11 +140,11 @@ def find_window_handle(window) -> int | None:
         return ctypes.windll.user32.FindWindowW(None, APP_NAME) or None
 
 
-def on_window_shown(window) -> None:
+def on_window_shown(window, theme: str) -> None:
     hwnd = find_window_handle(window)
     if not hwnd:
         return
-    for customize in (style_frame, lambda h: set_window_icon(h, ICON_PATH)):
+    for customize in (lambda h: style_frame(h, theme), lambda h: set_window_icon(h, ICON_PATH)):
         try:
             customize(hwnd)
         except Exception:
@@ -268,6 +289,28 @@ class DesktopApi:
             return None
         return selection if isinstance(selection, str) else selection[0]
 
+    def set_theme(self, theme: str) -> None:
+        """La interfaz avisa al cambiar de tema: borde y fondo de la ventana a juego."""
+
+        if theme not in THEMES:
+            return
+        hwnd = find_window_handle(self._window)
+        if hwnd:
+            try:
+                paint_frame(hwnd, theme)
+            except OSError:
+                pass
+
+        def repaint():
+            from System.Drawing import ColorTranslator
+
+            self._window.native.BackColor = ColorTranslator.FromHtml(THEMES[theme]["background"])
+
+        try:
+            self._on_ui_thread(repaint)
+        except Exception:
+            pass  # Detalle estético: nunca debe romper la interfaz
+
     def start_maximized(self) -> bool:
         """La app se abre a pantalla completa (sin tapar la barra de tareas)."""
 
@@ -402,6 +445,7 @@ def main() -> None:
     server, thread = start_server()
 
     try:
+        theme = windows_theme()
         base_url = f"http://127.0.0.1:{server_port(server)}"
         controls = DesktopApi(base_url)
         window = webview.create_window(
@@ -411,13 +455,13 @@ def main() -> None:
             width=WINDOW_SIZE[0],
             height=WINDOW_SIZE[1],
             min_size=MIN_WINDOW_SIZE,
-            background_color=BACKGROUND_COLOR,
+            background_color=THEMES[theme]["background"],
             frameless=True,
             easy_drag=False,
             shadow=True,
         )
         controls.attach(window)
-        window.events.shown += lambda: on_window_shown(window)
+        window.events.shown += lambda: on_window_shown(window, theme)
         webview.start(gui="edgechromium", debug=False, icon=str(ICON_PATH))
 
         if not window.events.shown.is_set():

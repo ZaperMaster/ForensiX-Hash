@@ -110,8 +110,7 @@ function show(view) {
     : view === "progress" && state.job ? `#job=${state.job.id}` : view === "new" ? "" : `#view=${view}`;
   history.replaceState(null, "", link || location.pathname);
   $$(".view").forEach(section => section.classList.toggle("active", section.id === `view-${view}`));
-  $$(".tabs .nav").forEach(button => button.classList.toggle("active", button.dataset.view === view));
-  $(".nav-settings").classList.toggle("active", view === "settings");
+  $$(".sidebar .nav").forEach(button => button.classList.toggle("active", button.dataset.view === view));
   $("#main").scrollTop = 0;
   if (view === "history") loadHistory();
   if (view === "custody") loadCustody();
@@ -740,14 +739,20 @@ async function loadCustody() {
 
 const darkQuery = matchMedia("(prefers-color-scheme: dark)");
 
-function applyTheme(choice) {
-  const theme = choice === "system" ? (darkQuery.matches ? "dark" : "light") : choice;
-  document.documentElement.dataset.theme = theme;
-  $$("[data-theme-choice]").forEach(button => button.classList.toggle("active", button.dataset.themeChoice === choice));
+// Claro u oscuro. Hasta que se elija uno en Ajustes, se usa el de Windows.
+function themeChoice() {
+  const saved = recall("theme");
+  return saved === "light" || saved === "dark" ? saved : "";
 }
 
-const themeChoice = () => recall("theme") || "system";
-darkQuery.addEventListener("change", () => { if (themeChoice() === "system") applyTheme("system"); });
+function applyTheme(choice) {
+  const theme = choice || (darkQuery.matches ? "dark" : "light");
+  document.documentElement.dataset.theme = theme;
+  $$("[data-theme-choice]").forEach(button => button.classList.toggle("active", button.dataset.themeChoice === theme));
+  state.desktop?.set_theme(theme);  // Bordes y fondo de la ventana del mismo color
+}
+
+darkQuery.addEventListener("change", () => { if (!themeChoice()) applyTheme(""); });
 $$("[data-theme-choice]").forEach(button => button.addEventListener("click", () => {
   remember("theme", button.dataset.themeChoice);
   applyTheme(button.dataset.themeChoice);
@@ -804,10 +809,6 @@ function renderAbout() {
     [t("about.reports"), recall("output") || state.info.reports_folder],
     [t("about.repo"), state.info.repo],
   ]);
-  const pill = $("#adminPill");
-  pill.hidden = state.info.os !== "nt";
-  pill.classList.toggle("on", state.info.admin);
-  pill.textContent = t(state.info.admin ? "admin.on" : "admin.off");
 }
 
 document.addEventListener("langchange", () => {
@@ -825,6 +826,7 @@ document.addEventListener("langchange", () => {
 
 window.addEventListener("pywebviewready", () => {
   state.desktop = window.pywebview.api;
+  state.desktop.set_theme(document.documentElement.dataset.theme);
   if (state.kind === "disk") loadDisks();
 });
 
