@@ -1,6 +1,6 @@
 # Motor y versión web (python -m web). La app de escritorio añade desktop/requirements.txt.
-fastapi==0.161.1
+fastapi==0.162.0
 uvicorn==0.54.0
 # Tests
-pytest==9.1.1
+pytest==9.2.0
 httpx2==2.16.0
