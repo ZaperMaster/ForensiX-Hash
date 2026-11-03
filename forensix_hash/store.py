@@ -35,9 +35,15 @@ def home() -> Path:
 
 
 def _record_path(record_id: str) -> Path:
+    """Ruta del registro; el id (32 hex) puede venir de la API o de un JSON importado."""
+
     if not _ID.match(record_id or ""):
         raise KeyError(record_id)
-    return home() / "records" / f"{record_id}.json"
+    folder = os.path.normpath(home() / "records")
+    path = os.path.normpath(os.path.join(folder, f"{record_id}.json"))
+    if not path.startswith(folder + os.sep):
+        raise KeyError(record_id)
+    return Path(path)
 
 
 def save_record(record: dict) -> dict:

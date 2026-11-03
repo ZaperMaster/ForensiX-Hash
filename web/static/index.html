@@ -6,6 +6,15 @@
   <title>ForensiX Hash</title>
   <link rel="icon" href="/static/brand/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/styles.css">
+  <script>
+    // Tema antes de pintar la página, para que no parpadee (claro, oscuro o el del sistema).
+    (function () {
+      var theme = "system";
+      try { theme = localStorage.getItem("forensix.theme") || "system"; } catch (e) {}
+      if (theme === "system") theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
 </head>
 <body>
 <div class="resize-handles" aria-hidden="true">
@@ -19,11 +28,17 @@
   <div class="brand">
     <img class="logo-mark" src="/static/brand/logo.svg" alt="" draggable="false">
     <span class="brand-name">Forensi<b>X</b> Hash</span>
-    <span class="version" id="appVersion"></span>
   </div>
+  <nav class="tabs" aria-label="Secciones">
+    <button class="nav active" data-view="new" type="button"><span data-i18n="nav.new">Nuevo hash</span></button>
+    <button class="nav" data-view="history" type="button"><span data-i18n="nav.history">Registros</span></button>
+    <button class="nav" data-view="custody" type="button"><span data-i18n="nav.custody">Custodia</span></button>
+  </nav>
   <div class="titlebar-actions">
     <span class="admin-pill" id="adminPill" hidden></span>
-    <button id="language" class="ghost small" type="button">EN</button>
+    <button class="icon-button nav-settings" data-view="settings" type="button" data-i18n-title="nav.settings" title="Ajustes">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
     <div class="window-controls">
       <button type="button" id="windowMinimize" aria-label="Minimizar"><svg viewBox="0 0 10 10"><path d="M0 5h10"/></svg></button>
       <button type="button" id="windowMaximize" aria-label="Maximizar"><svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9"/></svg></button>
@@ -32,22 +47,14 @@
   </div>
 </header>
 
-<div class="layout">
-  <nav class="sidebar" aria-label="Secciones">
-    <button class="nav active" data-view="new" type="button">
-      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="nav.new">Nuevo hash</span></button>
-    <button class="nav" data-view="history" type="button">
-      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span data-i18n="nav.history">Registros</span></button>
-    <button class="nav" data-view="verify" type="button">
-      <svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg><span data-i18n="nav.verify">Verificar</span></button>
-    <button class="nav" data-view="custody" type="button">
-      <svg viewBox="0 0 24 24"><path d="M9 7a3 3 0 0 1 3-3h4a3 3 0 0 1 0 6h-2M15 17a3 3 0 0 1-3 3H8a3 3 0 0 1 0-6h2M9 12h6"/></svg><span data-i18n="nav.custody">Custodia</span></button>
-    <div class="sidebar-foot">
-      <button class="nav" data-view="about" type="button">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span data-i18n="nav.about">Acerca de</span></button>
-    </div>
-  </nav>
+<div id="updateBanner" class="update-banner" hidden>
+  <span id="updateText"></span>
+  <button type="button" class="primary small" id="updateInstall" data-i18n="update.install">Actualizar ahora</button>
+  <a id="updateNotes" target="_blank" rel="noopener" data-i18n="update.notes">Novedades</a>
+  <button type="button" class="ghost small" id="updateDismiss" aria-label="Cerrar">✕</button>
+</div>
 
+<div class="layout">
   <main id="main">
     <!-- NUEVO HASH -->
     <section class="view active" id="view-new">
@@ -56,8 +63,16 @@
         <p class="lead" data-i18n="new.lead">Calcula los hashes de una evidencia, verifícalos con una segunda lectura y genera el informe con los datos del caso.</p>
       </div>
 
-      <div class="card">
-        <div class="step"><span>1</span><h2 data-i18n="new.what">¿Qué quieres hashear?</h2></div>
+      <ol class="wizard-steps" id="wizardSteps">
+        <li data-step="1"><span>1</span><b data-i18n="wizard.select">Evidencia</b></li>
+        <li data-step="2"><span>2</span><b data-i18n="wizard.case">Datos</b></li>
+        <li data-step="3"><span>3</span><b data-i18n="wizard.hash">Hash</b></li>
+        <li data-step="4"><span>4</span><b data-i18n="wizard.save">Guardar</b></li>
+        <li data-step="5"><span>5</span><b data-i18n="wizard.process">Proceso</b></li>
+      </ol>
+
+      <div class="card wizard-page" data-page="1">
+        <h2 data-i18n="new.what">¿Qué quieres hashear?</h2>
         <div class="kinds" role="tablist">
           <button class="kind active" data-kind="file" type="button" role="tab">
             <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z M14 3v4h4"/></svg>
@@ -93,8 +108,8 @@
         </div>
       </div>
 
-      <div class="card">
-        <div class="step"><span>2</span><h2 data-i18n="new.case">Datos del caso</h2></div>
+      <div class="card wizard-page" data-page="2" hidden>
+        <h2 data-i18n="new.case">Datos de la evidencia</h2>
         <form id="caseForm" class="grid" autocomplete="off">
           <label><span><span data-i18n="case.examiner">Realizado por</span> <em>*</em></span>
             <input name="examiner" required maxlength="200" data-i18n-placeholder="case.examiner_ph" placeholder="Nombre y apellidos"></label>
@@ -107,19 +122,32 @@
           <label class="wide"><span data-i18n="case.description">Descripción de la evidencia</span>
             <input name="description" maxlength="2000" data-i18n-placeholder="case.description_ph" placeholder="Marca, modelo, nº de serie, estado…"></label>
           <label class="wide"><span data-i18n="case.notes">Notas</span>
-            <textarea name="notes" rows="2" maxlength="2000"></textarea></label>
+            <textarea name="notes" rows="3" maxlength="2000"></textarea></label>
         </form>
       </div>
 
-      <div class="card">
-        <div class="step"><span>3</span><h2 data-i18n="new.algorithms">Algoritmos</h2></div>
-        <div id="algorithms" class="chips"></div>
+      <div class="card wizard-page" data-page="3" hidden>
+        <h2 data-i18n="new.algorithms">¿Qué hash quieres calcular?</h2>
+        <div id="algorithms" class="algorithms"></div>
         <p class="hint" data-i18n="new.verify_note">Al terminar se verifica automáticamente: la evidencia se lee una segunda vez y los hashes deben coincidir.</p>
       </div>
 
-      <div class="actions">
+      <div class="card wizard-page" data-page="4" hidden>
+        <h2 data-i18n="new.output">¿Dónde guardo el informe PDF?</h2>
+        <div class="path-row">
+          <input id="outputPath" type="text" spellcheck="false" autocomplete="off">
+          <button id="browseOutput" type="button" class="secondary" data-i18n="new.browse">Examinar…</button>
+        </div>
+        <p class="hint" data-i18n="new.output_hint">Al terminar se crea ahí el informe en PDF como comprobante. No puede ser dentro de la evidencia, porque la modificaría.</p>
+        <h2 class="summary-title" data-i18n="new.summary">Resumen</h2>
+        <dl class="facts" id="summary"></dl>
+      </div>
+
+      <div class="wizard-nav">
+        <button id="backButton" type="button" class="secondary" data-i18n="wizard.back">Atrás</button>
         <p class="error" id="newError" role="alert"></p>
-        <button id="startButton" type="button" class="primary big" data-i18n="new.start">Calcular y verificar</button>
+        <button id="nextButton" type="button" class="primary" data-i18n="wizard.next">Siguiente</button>
+        <button id="startButton" type="button" class="primary" hidden data-i18n="new.start">Calcular y verificar</button>
       </div>
     </section>
 
@@ -133,7 +161,7 @@
         <ol class="phases">
           <li data-phase="hashing"><span>1</span><b data-i18n="progress.hashing">Cálculo</b></li>
           <li data-phase="verifying"><span>2</span><b data-i18n="progress.verifying">Verificación</b></li>
-          <li data-phase="done"><span>3</span><b data-i18n="progress.done">Informe</b></li>
+          <li data-phase="report"><span>3</span><b data-i18n="progress.done">Informe PDF</b></li>
         </ol>
         <div class="bar"><div id="progressBar"></div></div>
         <div class="progress-stats">
@@ -143,7 +171,7 @@
           <div><small data-i18n="progress.eta">Tiempo restante</small><b id="statEta">—</b></div>
           <div><small data-i18n="progress.files">Archivos</small><b id="statFiles">—</b></div>
         </div>
-        <p class="current mono" id="statCurrent"></p>
+        <p class="current-file mono" id="statCurrent"></p>
         <div class="actions"><button id="cancelButton" type="button" class="danger" data-i18n="progress.cancel">Cancelar</button></div>
       </div>
     </section>
@@ -168,20 +196,15 @@
             <input id="compareInput" type="text" spellcheck="false" data-i18n-placeholder="record.compare_ph" placeholder="Pega un hash conocido para compararlo…">
             <span id="compareResult"></span>
           </div>
-          <p class="hint" id="dirHashNote" hidden data-i18n="record.dir_note">En una carpeta, cada hash es el de su manifiesto (lista «hash  ruta» ordenada). Expórtalo como .sha256 para comprobarlo con cualquier herramienta.</p>
+          <p class="hint" id="dirHashNote" hidden data-i18n="record.dir_note">En una carpeta, cada hash es el de su manifiesto (lista «hash  ruta» ordenada). </p>
         </div>
 
         <div class="card">
-          <h2 data-i18n="record.export">Informe</h2>
+          <h2 data-i18n="record.export">Informe PDF</h2>
+          <ul id="reportList" class="reports"></ul>
           <div class="export-buttons">
-            <button type="button" class="primary" data-export="pdf">PDF</button>
-            <button type="button" class="secondary" data-export="html">HTML</button>
-            <button type="button" class="secondary" data-export="txt">TXT</button>
-            <button type="button" class="secondary" data-export="json">JSON</button>
-            <button type="button" class="secondary" data-export="csv">CSV</button>
+            <button type="button" class="secondary small" id="newPdf" data-i18n="record.new_pdf">Crear otro PDF…</button>
           </div>
-          <div class="export-buttons" id="manifestButtons"></div>
-          <p class="hint" data-i18n="record.export_hint">El JSON se puede importar en otro equipo para verificar la evidencia allí.</p>
           <p class="hint" id="exportStatus" role="status"></p>
         </div>
 
@@ -192,6 +215,8 @@
             <label><span data-i18n="record.copy_path">Comprobar una copia (opcional)</span>
               <span class="path-row"><input name="target" spellcheck="false" data-i18n-placeholder="record.copy_ph" placeholder="Misma evidencia en otra ruta"><button type="button" class="secondary small" id="browseCopy" data-i18n="new.browse">Examinar…</button></span></label>
             <label><span data-i18n="case.notes">Notas</span><input name="notes" maxlength="2000"></label>
+            <label><span data-i18n="record.verify_output">Guardar el PDF de la verificación en</span>
+              <span class="path-row"><input name="output" spellcheck="false"><button type="button" class="secondary small" id="browseVerifyOutput" data-i18n="new.browse">Examinar…</button></span></label>
             <button type="submit" class="primary" data-i18n="record.verify_now">Verificar ahora</button>
           </form>
         </div>
@@ -236,29 +261,6 @@
       <div id="historyList" class="history"></div>
     </section>
 
-    <!-- VERIFICAR -->
-    <section class="view" id="view-verify">
-      <div class="view-head">
-        <h1 data-i18n="verify.title">Verificar</h1>
-        <p class="lead" data-i18n="verify.lead">Comprueba que una evidencia no ha cambiado desde que se hasheó.</p>
-      </div>
-      <div class="card">
-        <h2 data-i18n="verify.import_title">Desde un informe JSON</h2>
-        <p data-i18n="verify.import_text">Importa el informe JSON de ForensiX Hash (también de otro equipo). Se comprueba su sello y después puedes verificar la evidencia.</p>
-        <label class="drop" id="dropZone">
-          <input type="file" id="importFile" accept=".json,application/json" hidden>
-          <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
-          <span data-i18n="verify.drop">Arrastra aquí el informe .json o haz clic para elegirlo</span>
-        </label>
-        <p class="error" id="importError" role="alert"></p>
-      </div>
-      <div class="card">
-        <h2 data-i18n="verify.from_history">Desde los registros</h2>
-        <p data-i18n="verify.from_history_text">Abre un registro y pulsa «Verificar ahora». Cada verificación queda anotada con quién la hizo y cuándo.</p>
-        <button type="button" class="secondary" data-view="history" data-i18n="verify.open_history">Ver registros</button>
-      </div>
-    </section>
-
     <!-- CUSTODIA -->
     <section class="view" id="view-custody">
       <div class="view-head">
@@ -271,12 +273,43 @@
         <tbody id="custodyBody"></tbody></table></div></div>
     </section>
 
-    <!-- ACERCA DE -->
-    <section class="view" id="view-about">
-      <div class="view-head"><h1 data-i18n="about.title">Acerca de ForensiX Hash</h1></div>
+    <!-- AJUSTES -->
+    <section class="view" id="view-settings">
+      <div class="view-head">
+        <h1 data-i18n="settings.title">Ajustes</h1>
+        <p class="lead" data-i18n="settings.lead">Apariencia, idioma y actualizaciones. Se guardan en este equipo.</p>
+      </div>
+
+      <div class="card settings">
+        <div class="setting">
+          <div><h2 data-i18n="settings.theme">Tema</h2><p class="hint" data-i18n="settings.theme_hint">Claro, oscuro o el mismo que Windows.</p></div>
+          <div class="segmented" id="themeChoice" role="radiogroup">
+            <button type="button" data-theme-choice="light" data-i18n="settings.light">Claro</button>
+            <button type="button" data-theme-choice="dark" data-i18n="settings.dark">Oscuro</button>
+            <button type="button" data-theme-choice="system" data-i18n="settings.system">Sistema</button>
+          </div>
+        </div>
+        <div class="setting">
+          <div><h2 data-i18n="settings.language">Idioma</h2><p class="hint" data-i18n="settings.language_hint">Interfaz e informes.</p></div>
+          <div class="segmented" id="languageChoice" role="radiogroup">
+            <button type="button" data-lang-choice="es">Español</button>
+            <button type="button" data-lang-choice="en">English</button>
+          </div>
+        </div>
+        <div class="setting">
+          <div><h2 data-i18n="settings.updates">Actualizaciones</h2>
+            <p class="hint" id="updateStatus" data-i18n="settings.updates_hint">Al abrir la app comprueba si hay una versión nueva en GitHub. Las actualizaciones van firmadas.</p></div>
+          <div class="setting-actions">
+            <label class="switch"><input type="checkbox" id="autoUpdate" checked><span data-i18n="settings.auto">Buscar automáticamente</span></label>
+            <button type="button" class="secondary small" id="checkUpdates" data-i18n="settings.check">Buscar ahora</button>
+          </div>
+        </div>
+      </div>
+
       <div class="card about">
-        <img src="/static/brand/logo.svg" alt="" width="72" height="72">
+        <img src="/static/brand/logo.svg" alt="" width="64" height="64">
         <div>
+          <h2 data-i18n="about.title">Acerca de ForensiX Hash</h2>
           <p data-i18n="about.text">Herramienta de hashing forense: archivos, carpetas y discos, con verificación automática, datos del caso, cadena de custodia e informes.</p>
           <dl class="facts" id="aboutFacts"></dl>
           <p class="hint" data-i18n="about.legal">Usa la herramienta solo sobre evidencias propias o con autorización. Para evidencias reales, conecta los discos con un bloqueador de escritura.</p>

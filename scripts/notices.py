@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "THIRD_PARTY_NOTICES.md"
 # Lo que va dentro del .exe. pytest, httpx2 y pillow solo se usan para probar o generar iconos;
 # PyInstaller aporta su cargador, que se declara aparte.
-ROOTS = ["fastapi", "uvicorn", "pywebview"]
+ROOTS = ["fastapi", "uvicorn", "pywebview", "cryptography"]
 # Paquetes que no declaran la licencia en sus metadatos (comprobada en su repositorio).
 KNOWN_LICENSES = {"clr_loader": "MIT"}
 LICENSE_FILES = re.compile(r"(LICEN[CS]E|COPYING|NOTICE|AUTHORS)", re.IGNORECASE)

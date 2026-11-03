@@ -231,6 +231,18 @@ def describe_device(path: str) -> dict:
     return {"kind": "disk", "path": path}
 
 
+def letters_of(path: str) -> set[str]:
+    """Letras de unidad que viven en un disco o volumen (p. ej. {'D', 'E'})."""
+
+    volume = _VOLUME.match(path)
+    if volume:
+        return {volume.group(1).upper()}
+    for disk in list_devices():
+        if disk["path"].lower() == path.lower():
+            return {v["letter"].rstrip(":").upper() for v in disk["volumes"] if v["letter"]}
+    return set()
+
+
 def relaunch_as_admin() -> bool:
     """Vuelve a abrir la app pidiendo permisos de administrador (UAC). Windows."""
 

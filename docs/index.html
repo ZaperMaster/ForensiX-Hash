@@ -13,66 +13,78 @@
   <meta name="twitter:card" content="summary_large_image">
   <style>
     :root {
-      --bg: #0a0f1a; --panel: #101826; --panel-2: #152033; --border: #22314a;
-      --text: #e6edf6; --muted: #8a9ab3; --accent: #2dd4bf; --ok: #34d399; --bad: #f87171;
+      --bg: #ffffff; --soft: #f6f6f8; --surface: #ffffff; --border: #e7e7ec; --text: #18181b; --text-2: #3f3f46;
+      --muted: #71717a; --accent: #2f6bff; --accent-soft: rgba(47, 107, 255, .08); --ok: #15803d; --ok-soft: #e8f6ee;
+      --bad: #dc2626; --bad-soft: #fdecec; --code: #f4f4f7;
       --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+      --shadow: 0 1px 2px rgba(16, 16, 24, .04), 0 10px 30px rgba(16, 16, 24, .07);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0e0f12; --soft: #141519; --surface: #17181c; --border: #2a2b32; --text: #f2f2f5; --text-2: #d4d4da;
+        --muted: #9b9ba7; --accent: #5b8cff; --accent-soft: rgba(91, 140, 255, .14); --ok: #34d399; --ok-soft: rgba(52, 211, 153, .12);
+        --bad: #f87171; --bad-soft: rgba(248, 113, 113, .12); --code: #1f2026; --shadow: none;
+      }
     }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; }
-    a { color: var(--accent); }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-decoration: none; }
     .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
     nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 18px; color: var(--text); text-decoration: none; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 17px; color: var(--text); }
     .brand b { color: var(--accent); }
-    .brand img { width: 32px; height: 32px; }
-    nav .links { display: flex; gap: 22px; font-size: 14px; }
-    nav .links a { color: var(--muted); text-decoration: none; }
+    .brand img { width: 30px; height: 30px; }
+    nav .links { display: flex; gap: 24px; font-size: 14px; align-items: center; }
+    nav .links a { color: var(--muted); }
     nav .links a:hover { color: var(--text); }
-    .lang { border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
+    .lang { border: 1px solid var(--border); border-radius: 8px; padding: 3px 10px; }
 
-    .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding: 56px 0 40px; }
-    .eyebrow { color: var(--accent); font-weight: 600; letter-spacing: .6px; text-transform: uppercase; font-size: 13px; }
-    h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.1; margin: 10px 0 18px; letter-spacing: -.5px; }
-    h1 span { color: var(--accent); }
-    .hero p { color: var(--muted); font-size: 18px; margin: 0 0 28px; }
+    .hero { display: grid; grid-template-columns: 1fr 1.1fr; gap: 56px; align-items: center; padding: 64px 0 72px; }
+    .eyebrow { display: inline-block; font-weight: 600; font-size: 13px; color: var(--accent); background: var(--accent-soft); padding: 4px 12px; border-radius: 99px; }
+    h1 { font-size: clamp(36px, 5vw, 56px); line-height: 1.05; margin: 18px 0 18px; letter-spacing: -1.6px; font-weight: 750; }
+    h1 span { background: linear-gradient(90deg, #2f6bff, #18b4f5); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero p { color: var(--text-2); font-size: 18px; margin: 0 0 30px; }
     .cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    .button { display: inline-flex; align-items: center; gap: 10px; padding: 13px 22px; border-radius: 10px; font-weight: 600; text-decoration: none; }
-    .button.primary { background: var(--accent); color: #04201d; }
-    .button.secondary { border: 1px solid var(--border); color: var(--text); background: var(--panel); }
+    .button { display: inline-flex; align-items: center; gap: 10px; padding: 13px 22px; border-radius: 12px; font-weight: 600; }
+    .button.primary { background: var(--accent); color: #fff; box-shadow: 0 8px 24px rgba(47, 107, 255, .3); }
+    .button.primary:hover { filter: brightness(1.06); }
+    .button.secondary { color: var(--text); background: var(--surface); border: 1px solid var(--border); }
     .button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-    .small { color: var(--muted); font-size: 13px; margin-top: 14px; }
-    .shot { border-radius: 14px; border: 1px solid var(--border); box-shadow: 0 30px 80px rgba(0, 0, 0, .5); width: 100%; display: block; }
+    .small { color: var(--muted); font-size: 13.5px; margin-top: 16px; }
+    .shot { border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 30px 80px rgba(16, 16, 24, .18); width: 100%; display: block; }
 
-    section { padding: 56px 0; border-top: 1px solid var(--border); }
-    h2 { font-size: 30px; margin: 0 0 8px; }
-    .lead { color: var(--muted); margin: 0 0 32px; max-width: 760px; }
+    section { padding: 72px 0; }
+    section.soft { background: var(--soft); }
+    h2 { font-size: 32px; margin: 0 0 10px; letter-spacing: -.8px; font-weight: 700; }
+    .lead { color: var(--muted); margin: 0 0 36px; max-width: 720px; font-size: 17px; }
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
-    .card h3 { margin: 10px 0 6px; font-size: 17px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); }
+    .card h3 { margin: 14px 0 6px; font-size: 17px; font-weight: 650; }
     .card p { margin: 0; color: var(--muted); font-size: 15px; }
-    .icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: rgba(45, 212, 191, .12); color: var(--accent); }
+    .icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
     .icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     .steps { counter-reset: step; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-    .steps .card::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #04201d; font-weight: 700; }
+    .steps .card::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; }
 
-    .gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     .gallery figure { margin: 0; }
-    .gallery img { width: 100%; border-radius: 12px; border: 1px solid var(--border); display: block; }
-    .gallery figcaption { color: var(--muted); font-size: 14px; margin-top: 8px; }
+    .gallery img { width: 100%; border-radius: 14px; border: 1px solid var(--border); display: block; box-shadow: var(--shadow); }
+    .gallery figcaption { color: var(--muted); font-size: 14px; margin-top: 10px; }
 
-    pre { background: #060a12; border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; overflow: auto; font: 13.5px/1.6 var(--mono); color: #cfe7e3; }
+    pre { background: var(--code); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; overflow: auto; font: 13.5px/1.7 var(--mono); color: var(--text-2); }
     code { font-family: var(--mono); font-size: .92em; }
-    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
-    .verdict { display: inline-block; font-weight: 700; letter-spacing: .5px; padding: 3px 10px; border-radius: 6px; font-size: 13px; }
-    .verdict.ok { background: var(--ok); color: #052e1c; }
-    .verdict.bad { background: var(--bad); color: #330808; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+    .verdict { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; font-size: 13px; padding: 6px 14px; border-radius: 99px; }
+    .verdict::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .verdict.ok { background: var(--ok-soft); color: var(--ok); }
+    .verdict.bad { background: var(--bad-soft); color: var(--bad); }
 
-    details { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 10px; }
+    details { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; margin-bottom: 10px; }
     summary { cursor: pointer; font-weight: 600; }
     details p { color: var(--muted); margin: 10px 0 0; }
 
-    footer { border-top: 1px solid var(--border); padding: 28px 0 40px; color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    footer { border-top: 1px solid var(--border); padding: 28px 0 44px; color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
     @media (max-width: 880px) {
       .hero, .two, .gallery { grid-template-columns: 1fr; }
@@ -107,8 +119,8 @@
           <svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg><span data-es="Descargar para Windows" data-en="Download for Windows">Descargar para Windows</span></a>
         <a class="button secondary" href="https://github.com/ZaperMaster/ForensiX-Hash"><span data-es="Ver el código" data-en="View source">Ver el código</span></a>
       </div>
-      <p class="small" data-es="Gratis para uso no comercial · Windows 10 y 11 · sin instalación ni conexión a Internet"
-         data-en="Free for non-commercial use · Windows 10 and 11 · no installation or Internet connection">Gratis para uso no comercial · Windows 10 y 11 · sin instalación ni conexión a Internet</p>
+      <p class="small" data-es="Gratis para uso no comercial · Windows 10 y 11 · sin instalación · se actualiza sola"
+         data-en="Free for non-commercial use · Windows 10 and 11 · no installation · updates itself">Gratis para uso no comercial · Windows 10 y 11 · sin instalación · se actualiza sola</p>
     </div>
     <img class="shot" src="capturas/resultado.png" alt="Registro verificado de un pendrive en ForensiX Hash">
   </header>
@@ -141,24 +153,24 @@
         <p data-es="Cada operación enlazada con la anterior por su hash; los registros llevan un sello que delata cualquier edición."
            data-en="Every operation linked to the previous one by its hash; records carry a seal that reveals any edit.">Cada operación enlazada con la anterior por su hash; los registros llevan un sello que delata cualquier edición.</p></div>
       <div class="card"><div class="icon"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z M14 3v4h4 M9 13h6M9 17h6"/></svg></div>
-        <h3 data-es="Informes listos para firmar" data-en="Reports ready to sign">Informes listos para firmar</h3>
-        <p data-es="PDF, HTML, TXT, JSON, CSV y manifiestos .sha256 compatibles con sha256sum. En español e inglés."
-           data-en="PDF, HTML, TXT, JSON, CSV and .sha256 manifests compatible with sha256sum. In Spanish and English.">PDF, HTML, TXT, JSON, CSV y manifiestos .sha256 compatibles con sha256sum. En español e inglés.</p></div>
+        <h3 data-es="Informe PDF como comprobante" data-en="PDF report as proof">Informe PDF como comprobante</h3>
+        <p data-es="Al terminar se guarda el PDF en la carpeta que elijas, listo para firmar. En español e inglés."
+           data-en="When it finishes the PDF is saved to the folder you choose, ready to sign. In Spanish and English.">Al terminar se guarda el PDF en la carpeta que elijas, listo para firmar. En español e inglés.</p></div>
     </div>
   </section>
 
   <section id="como">
     <h2 data-es="Cómo funciona" data-en="How it works">Cómo funciona</h2>
-    <p class="lead" data-es="Cuatro pasos, de la evidencia al informe." data-en="Four steps, from the evidence to the report.">Cuatro pasos, de la evidencia al informe.</p>
+    <p class="lead" data-es="Un asistente de cuatro pasos, de la evidencia al PDF." data-en="A four-step wizard, from the evidence to the PDF.">Un asistente de cuatro pasos, de la evidencia al PDF.</p>
     <div class="steps">
       <div class="card"><h3 data-es="Elige la evidencia" data-en="Choose the evidence">Elige la evidencia</h3><p data-es="Un archivo, una carpeta o un disco de la lista, con su modelo y número de serie." data-en="A file, a folder or a disk from the list, with its model and serial number.">Un archivo, una carpeta o un disco de la lista, con su modelo y número de serie.</p></div>
-      <div class="card"><h3 data-es="Rellena el caso" data-en="Fill in the case">Rellena el caso</h3><p data-es="Quién lo hace y los números de caso y evidencia." data-en="Who does it and the case and evidence numbers.">Quién lo hace y los números de caso y evidencia.</p></div>
-      <div class="card"><h3 data-es="Calcula y verifica" data-en="Hash and verify">Calcula y verifica</h3><p data-es="Primera lectura para calcular, segunda para comprobar. Con velocidad y tiempo restante." data-en="First read to hash, second to check. With speed and time left.">Primera lectura para calcular, segunda para comprobar. Con velocidad y tiempo restante.</p></div>
-      <div class="card"><h3 data-es="Exporta el informe" data-en="Export the report">Exporta el informe</h3><p data-es="PDF para el expediente y JSON para verificarlo después en cualquier equipo." data-en="PDF for the case file and JSON to verify it later on any computer.">PDF para el expediente y JSON para verificarlo después en cualquier equipo.</p></div>
+      <div class="card"><h3 data-es="Escribe los datos" data-en="Enter the details">Escribe los datos</h3><p data-es="Quién lo hace, los números de caso y evidencia y la descripción." data-en="Who does it, the case and evidence numbers and the description.">Quién lo hace, los números de caso y evidencia y la descripción.</p></div>
+      <div class="card"><h3 data-es="Elige el hash" data-en="Choose the hash">Elige el hash</h3><p data-es="MD5, SHA-1 y SHA-256 por defecto, o los que necesites." data-en="MD5, SHA-1 and SHA-256 by default, or the ones you need.">MD5, SHA-1 y SHA-256 por defecto, o los que necesites.</p></div>
+      <div class="card"><h3 data-es="Guarda el PDF" data-en="Save the PDF">Guarda el PDF</h3><p data-es="Se calcula, se verifica con una segunda lectura y el informe PDF aparece en tu carpeta." data-en="It is hashed, verified with a second read and the PDF report appears in your folder.">Se calcula, se verifica con una segunda lectura y el informe PDF aparece en tu carpeta.</p></div>
     </div>
   </section>
 
-  <section>
+  <section class="soft-gap">
     <h2 data-es="Capturas" data-en="Screenshots">Capturas</h2>
     <p class="lead" data-es="Pruebas reales con un pendrive USB SanDisk de 64 GB." data-en="Real tests with a 64 GB SanDisk USB drive.">Pruebas reales con un pendrive USB SanDisk de 64 GB.</p>
     <div class="gallery">
@@ -173,8 +185,8 @@
     <div class="two">
       <div>
         <h2 data-es="Comprobable sin la app" data-en="Checkable without the app">Comprobable sin la app</h2>
-        <p class="lead" data-es="El hash de una carpeta es el hash de su manifiesto («hash  ruta» por archivo, ordenado). Cualquiera puede comprobarlo con herramientas estándar, sin ForensiX Hash."
-           data-en="A folder's hash is the hash of its manifest (one sorted &quot;hash  path&quot; line per file). Anyone can check it with standard tools, without ForensiX Hash.">El hash de una carpeta es el hash de su manifiesto («hash  ruta» por archivo, ordenado). Cualquiera puede comprobarlo con herramientas estándar, sin ForensiX Hash.</p>
+        <p class="lead" data-es="El hash de una carpeta es el hash de su manifiesto («hash  ruta» por archivo, ordenado). El manifiesto se exporta con la línea de comandos (--out carpeta.sha256) y se comprueba con herramientas estándar."
+           data-en="A folder's hash is the hash of its manifest (one sorted &quot;hash  path&quot; line per file). The manifest is exported with the command line (--out folder.sha256) and checked with standard tools.">El hash de una carpeta es el hash de su manifiesto («hash  ruta» por archivo, ordenado). El manifiesto se exporta con la línea de comandos (--out carpeta.sha256) y se comprueba con herramientas estándar.</p>
         <p><span class="verdict ok">VERIFICADO</span> &nbsp;<span class="verdict bad">NO COINCIDE</span></p>
       </div>
 <pre>$ cd EV-02
@@ -214,8 +226,11 @@ python -m forensix_hash verify &lt;id&gt; --examiner "Luis Gómez"</pre>
       <p data-es="Comprueba que ambos cubren lo mismo: disco físico completo (\\.\PhysicalDriveN) frente a un volumen (\\.\D:). El hash del disco completo debe coincidir con el de una imagen dd sin comprimir del mismo disco."
          data-en="Check that both cover the same thing: whole physical disk (\\.\PhysicalDriveN) versus a volume (\\.\D:). The whole-disk hash must match an uncompressed dd image of the same disk.">Comprueba que ambos cubren lo mismo: disco físico completo (\\.\PhysicalDriveN) frente a un volumen (\\.\D:). El hash del disco completo debe coincidir con el de una imagen dd sin comprimir del mismo disco.</p></details>
     <details><summary data-es="¿Envía algo a Internet?" data-en="Does it send anything to the Internet?">¿Envía algo a Internet?</summary>
-      <p data-es="No. Todo se guarda en tu equipo (%LOCALAPPDATA%\ForensiX Hash) y la app no se conecta a ningún servidor."
-         data-en="No. Everything is stored on your computer (%LOCALAPPDATA%\ForensiX Hash) and the app does not connect to any server.">No. Todo se guarda en tu equipo (%LOCALAPPDATA%\ForensiX Hash) y la app no se conecta a ningún servidor.</p></details>
+      <p data-es="No. Las evidencias, los registros y los informes se quedan en tu equipo. Solo consulta GitHub para ver si hay una versión nueva (se puede desactivar en Ajustes)."
+         data-en="No. Evidence, records and reports stay on your computer. It only checks GitHub for a new version (can be turned off in Settings).">No. Las evidencias, los registros y los informes se quedan en tu equipo. Solo consulta GitHub para ver si hay una versión nueva (se puede desactivar en Ajustes).</p></details>
+    <details><summary data-es="¿Cómo se actualiza?" data-en="How does it update?">¿Cómo se actualiza?</summary>
+      <p data-es="Al abrirla avisa si hay una versión nueva y se instala con un clic. Cada actualización va firmada (Ed25519): la app no instala nada cuya firma no sea válida."
+         data-en="When it opens it tells you if there is a new version and installs it with one click. Every update is signed (Ed25519): the app does not install anything without a valid signature.">Al abrirla avisa si hay una versión nueva y se instala con un clic. Cada actualización va firmada (Ed25519): la app no instala nada cuya firma no sea válida.</p></details>
     <details><summary data-es="¿Cómo compruebo que la descarga es auténtica?" data-en="How do I check the download is authentic?">¿Cómo compruebo que la descarga es auténtica?</summary>
       <p data-es="Cada versión publica SHA256SUMS.txt. En PowerShell: Get-FileHash ForensiX-Hash.exe -Algorithm SHA256, y compara el valor."
          data-en="Each release publishes SHA256SUMS.txt. In PowerShell: Get-FileHash ForensiX-Hash.exe -Algorithm SHA256, and compare the value.">Cada versión publica SHA256SUMS.txt. En PowerShell: Get-FileHash ForensiX-Hash.exe -Algorithm SHA256, y compara el valor.</p></details>

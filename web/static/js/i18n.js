@@ -3,13 +3,27 @@
 
 const I18N = (() => {
   const EN = {
-    "nav.new": "New hash", "nav.history": "Records", "nav.verify": "Verify", "nav.custody": "Custody", "nav.about": "About",
+    "nav.new": "New hash", "nav.history": "Records", "nav.custody": "Custody", "nav.settings": "Settings",
     "new.title": "New hash",
-    "new.lead": "Hash a piece of evidence, verify it with a second read and generate the report with the case details.",
+    "new.lead": "Hash a piece of evidence, verify it with a second read and get the PDF report with the case details.",
+    "wizard.select": "Evidence", "wizard.case": "Details", "wizard.hash": "Hash", "wizard.save": "Save",
+    "wizard.process": "Process", "wizard.back": "Back", "wizard.next": "Next",
     "new.what": "What do you want to hash?", "new.browse": "Browse…",
-    "new.path_placeholder": "File path", "new.case": "Case details", "new.algorithms": "Algorithms",
+    "new.case": "Evidence details", "new.algorithms": "Which hash do you want to calculate?",
+    "new.output": "Where should the PDF report be saved?",
+    "new.output_hint": "When it finishes, the PDF report is created there as proof. It cannot be inside the evidence, because that would modify it.",
+    "new.summary": "Summary",
     "new.verify_note": "When it finishes it is verified automatically: the evidence is read a second time and the hashes must match.",
     "new.start": "Hash and verify",
+    "settings.title": "Settings", "settings.lead": "Appearance, language and updates. Saved on this computer.",
+    "settings.theme": "Theme", "settings.theme_hint": "Light, dark or the same as Windows.",
+    "settings.light": "Light", "settings.dark": "Dark", "settings.system": "System",
+    "settings.language": "Language", "settings.language_hint": "Interface and reports.",
+    "settings.updates": "Updates",
+    "settings.updates_hint": "When the app opens it checks GitHub for a new version. Updates are signed.",
+    "settings.auto": "Check automatically", "settings.check": "Check now",
+    "update.install": "Update now", "update.notes": "What's new",
+    "record.new_pdf": "Create another PDF…", "record.verify_output": "Save the verification PDF in",
     "kind.file": "File", "kind.file_hint": "A single file",
     "kind.directory": "Folder", "kind.directory_hint": "All its files and subfolders",
     "kind.disk": "Disk", "kind.disk_hint": "Disk, USB drive, volume or image",
@@ -22,12 +36,12 @@ const I18N = (() => {
     "case.description": "Evidence description", "case.description_ph": "Make, model, serial number, condition…",
     "case.notes": "Notes",
     "progress.title": "Hashing", "progress.hashing": "Hashing", "progress.verifying": "Verification",
-    "progress.done": "Report", "progress.percent": "Progress", "progress.read": "Read", "progress.speed": "Speed",
+    "progress.done": "PDF report", "progress.percent": "Progress", "progress.read": "Read", "progress.speed": "Speed",
     "progress.eta": "Time left", "progress.files": "Files", "progress.cancel": "Cancel",
     "record.back": "← Records", "record.hashes": "Hashes",
     "record.compare_ph": "Paste a known hash to compare it…",
-    "record.dir_note": "For a folder, each hash is the hash of its manifest (a sorted \"hash  path\" list). Export it as .sha256 to check it with any tool.",
-    "record.export": "Report", "record.export_hint": "The JSON can be imported on another computer to verify the evidence there.",
+    "record.dir_note": "For a folder, each hash is the hash of its manifest: the \"hash  path\" list of all its files, sorted by path.",
+    "record.export": "PDF report",
     "record.reverify": "Verify again", "record.verifier": "Verified by", "record.copy_path": "Check a copy (optional)",
     "record.copy_ph": "Same evidence at another path", "record.verify_now": "Verify now",
     "record.case": "Case details", "record.evidence": "Evidence", "record.timeline": "Timeline",
@@ -37,13 +51,6 @@ const I18N = (() => {
     "record.delete": "Delete record",
     "history.title": "Records", "history.lead": "All the evidence hashed on this computer.",
     "history.search": "Search by case, evidence, path or person…",
-    "verify.title": "Verify", "verify.lead": "Check that a piece of evidence has not changed since it was hashed.",
-    "verify.import_title": "From a JSON report",
-    "verify.import_text": "Import a ForensiX Hash JSON report (also from another computer). Its seal is checked and then you can verify the evidence.",
-    "verify.drop": "Drop the .json report here or click to choose it",
-    "verify.from_history": "From the records",
-    "verify.from_history_text": "Open a record and press \"Verify now\". Each verification is logged with who did it and when.",
-    "verify.open_history": "View records",
     "custody.title": "Chain of custody",
     "custody.lead": "Every operation is logged and linked to the previous one by its hash: if an event is deleted or edited, the chain breaks.",
     "custody.time": "Date and time", "custody.action": "Event", "custody.evidence": "Evidence", "custody.by": "By",
@@ -51,6 +58,42 @@ const I18N = (() => {
     "about.text": "Forensic hashing tool: files, folders and disks, with automatic verification, case details, chain of custody and reports.",
     "about.legal": "Use the tool only on your own evidence or with authorization. For real evidence, connect disks through a write blocker.",
     "browser.title": "Choose", "browser.cancel": "Cancel", "browser.choose_folder": "Choose this folder",
+  };
+
+  // Textos comunes a los dos idiomas que crea app.js (se añaden a DYNAMIC).
+  const EXTRA = {
+    es: {
+      "err.output": "Elige dónde guardar el informe PDF.", "copy": "Copiar",
+      "sum.evidence": "Evidencia", "sum.algorithms": "Hash",
+      "alg.md5": "Compatibilidad con herramientas antiguas", "alg.sha1": "Habitual en informes periciales",
+      "alg.sha256": "Recomendado (estándar actual)", "alg.sha512": "Más largo, muy robusto",
+      "alg.sha3_256": "Familia SHA-3", "alg.blake2b": "Moderno y muy rápido",
+      "progress.pdf": "Creando el informe PDF…",
+      "pdf.saved": "Informe PDF guardado en {0}", "pdf.failed": "El hash está guardado, pero no se pudo crear el PDF: {0}",
+      "pdf.none": "Todavía no hay informes PDF.", "pdf.missing": "Ya no está en esa carpeta",
+      "pdf.open": "Abrir", "pdf.folder": "Mostrar en la carpeta",
+      "browser.choose_folder": "Elegir esta carpeta",
+      "update.available": "Hay una versión nueva: {0}", "update.latest": "Tienes la última versión ({0}).",
+      "update.checking": "Buscando actualizaciones…", "update.error": "No se pudo comprobar: {0}",
+      "update.installing": "Descargando y comprobando la firma…",
+      "about.reports": "Informes",
+    },
+    en: {
+      "err.output": "Choose where to save the PDF report.", "copy": "Copy",
+      "sum.evidence": "Evidence", "sum.algorithms": "Hash",
+      "alg.md5": "Compatibility with older tools", "alg.sha1": "Common in forensic reports",
+      "alg.sha256": "Recommended (current standard)", "alg.sha512": "Longer, very robust",
+      "alg.sha3_256": "SHA-3 family", "alg.blake2b": "Modern and very fast",
+      "progress.pdf": "Creating the PDF report…",
+      "pdf.saved": "PDF report saved to {0}", "pdf.failed": "The hash is saved, but the PDF could not be created: {0}",
+      "pdf.none": "No PDF reports yet.", "pdf.missing": "No longer in that folder",
+      "pdf.open": "Open", "pdf.folder": "Show in folder",
+      "browser.choose_folder": "Choose this folder",
+      "update.available": "A new version is available: {0}", "update.latest": "You have the latest version ({0}).",
+      "update.checking": "Checking for updates…", "update.error": "Could not check: {0}",
+      "update.installing": "Downloading and checking the signature…",
+      "about.reports": "Reports",
+    },
   };
 
   // Textos que genera app.js.
@@ -162,10 +205,14 @@ const I18N = (() => {
       if (!original.has(el)) original.set(el, el.placeholder);
       el.placeholder = lang === "en" ? (EN[el.dataset.i18nPlaceholder] ?? original.get(el)) : original.get(el);
     });
+    document.querySelectorAll("[data-i18n-title]").forEach(el => {
+      if (!original.has(el)) original.set(el, el.title);
+      el.title = lang === "en" ? (EN[el.dataset.i18nTitle] ?? original.get(el)) : original.get(el);
+    });
   }
 
   function t(key, ...args) {
-    const text = DYNAMIC[lang][key] ?? DYNAMIC.es[key] ?? key;
+    const text = EXTRA[lang][key] ?? DYNAMIC[lang][key] ?? DYNAMIC.es[key] ?? key;
     return text.replace(/\{(\d)\}/g, (_, i) => args[Number(i)] ?? "");
   }
 

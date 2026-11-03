@@ -1,6 +1,8 @@
 # Motor y versión web (python -m web). La app de escritorio añade desktop/requirements.txt.
 fastapi==0.161.1
 uvicorn==0.54.0
+# Firma de las actualizaciones automáticas (Ed25519)
+cryptography==50.0.2
 # Tests
 pytest==9.1.1
 httpx2==2.16.0

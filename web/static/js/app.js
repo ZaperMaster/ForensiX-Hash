@@ -1,6 +1,6 @@
-// Interfaz de ForensiX Hash: nuevo hash, progreso, registros, verificación y custodia.
+// Interfaz de ForensiX Hash: asistente de nuevo hash, progreso, registros, custodia y ajustes.
 // Funciona igual en el navegador (python -m web) y en la app de escritorio, donde
-// window.pywebview.api añade los diálogos nativos de Windows y el guardado de PDF.
+// window.pywebview.api añade los diálogos de Windows, la ventana y las actualizaciones.
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -8,10 +8,13 @@ const $$ = selector => [...document.querySelectorAll(selector)];
 const state = {
   info: null,
   kind: "file",
+  step: 1,
   disks: [],
   job: null,
   record: null,
+  recordData: null,
   records: [],
+  update: null,
   desktop: null,   // window.pywebview.api cuando es la app de escritorio
 };
 
@@ -30,6 +33,8 @@ async function api(path, options = {}) {
   return data;
 }
 
+const post = (path, body) => api(path, { method: "POST", body: JSON.stringify(body) });
+
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {
@@ -44,13 +49,14 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+const locale = () => (I18N.lang === "es" ? "es-ES" : "en-GB");
+
 function formatSize(bytes) {
   if (bytes === null || bytes === undefined) return "—";
   const units = ["B", "KB", "MB", "GB", "TB"];
   let value = bytes, unit = 0;
   while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
-  const locale = I18N.lang === "es" ? "es-ES" : "en-GB";
-  return `${value.toLocaleString(locale, { maximumFractionDigits: unit ? 2 : 0 })} ${units[unit]}`;
+  return `${value.toLocaleString(locale(), { maximumFractionDigits: unit ? 2 : 0 })} ${units[unit]}`;
 }
 
 function formatDuration(seconds) {
@@ -62,9 +68,7 @@ function formatDuration(seconds) {
 
 function formatDate(iso) {
   if (!iso) return "—";
-  const date = new Date(iso);
-  const locale = I18N.lang === "es" ? "es-ES" : "en-GB";
-  return `${date.toLocaleString(locale, { dateStyle: "medium", timeStyle: "medium" })}`;
+  return new Date(iso).toLocaleString(locale(), { dateStyle: "medium", timeStyle: "medium" });
 }
 
 function toast(message) {
@@ -72,7 +76,7 @@ function toast(message) {
   box.textContent = message;
   box.hidden = false;
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => { box.hidden = true; }, 3200);
+  toast.timer = setTimeout(() => { box.hidden = true; }, 4200);
 }
 
 function remember(name, value) {
@@ -106,7 +110,8 @@ function show(view) {
     : view === "progress" && state.job ? `#job=${state.job.id}` : view === "new" ? "" : `#view=${view}`;
   history.replaceState(null, "", link || location.pathname);
   $$(".view").forEach(section => section.classList.toggle("active", section.id === `view-${view}`));
-  $$(".sidebar .nav").forEach(button => button.classList.toggle("active", button.dataset.view === view));
+  $$(".tabs .nav").forEach(button => button.classList.toggle("active", button.dataset.view === view));
+  $(".nav-settings").classList.toggle("active", view === "settings");
   $("#main").scrollTop = 0;
   if (view === "history") loadHistory();
   if (view === "custody") loadCustody();
@@ -115,16 +120,15 @@ function show(view) {
 
 document.addEventListener("click", event => {
   const target = event.target.closest("[data-view]");
-  if (target) {
-    if (state.job && target.dataset.view !== "progress") {
-      show("progress");  // Hay una operación en curso: se queda en el progreso
-      return;
-    }
-    show(target.dataset.view);
+  if (!target) return;
+  if (state.job) {
+    show("progress");  // Hay una operación en curso: se queda en el progreso
+    return;
   }
+  show(target.dataset.view);
 });
 
-// --- Nuevo hash ----------------------------------------------------------------------------
+// --- Asistente: 1 evidencia · 2 datos · 3 hash · 4 guardar ----------------------------------
 
 function setKind(kind) {
   state.kind = kind;
@@ -136,6 +140,60 @@ function setKind(kind) {
 }
 
 $$(".kind").forEach(button => button.addEventListener("click", () => setKind(button.dataset.kind)));
+
+function goToStep(step) {
+  state.step = step;
+  $$(".wizard-page").forEach(page => { page.hidden = Number(page.dataset.page) !== step; });
+  $$("#wizardSteps li").forEach(li => {
+    const n = Number(li.dataset.step);
+    li.classList.toggle("current", n === step);
+    li.classList.toggle("complete", n < step);
+  });
+  $("#backButton").style.visibility = step === 1 ? "hidden" : "visible";
+  $("#nextButton").hidden = step === 4;
+  $("#startButton").hidden = step !== 4;
+  $("#newError").textContent = "";
+  if (step === 4) renderSummary();
+  const first = $(`.wizard-page[data-page="${step}"] input:not([type=radio]):not([type=checkbox])`);
+  if (first && step === 2) first.focus();
+}
+
+function selectedTarget() {
+  if (state.kind !== "disk") return $("#targetPath").value.trim();
+  return $("input[name=disk]:checked")?.value || $("#imagePath").value.trim();
+}
+
+function selectedAlgorithms() {
+  return $$("#algorithms input:checked").map(input => input.value);
+}
+
+function stepError(step) {
+  if (step === 1 && !selectedTarget()) return t("err.target");
+  if (step === 2 && !$("#caseForm").examiner.value.trim()) return t("err.examiner");
+  if (step === 3 && !selectedAlgorithms().length) return t("err.algorithms");
+  if (step === 4 && !$("#outputPath").value.trim()) return t("err.output");
+  return "";
+}
+
+$("#nextButton").addEventListener("click", () => {
+  const error = stepError(state.step);
+  if (error) { $("#newError").textContent = error; return; }
+  goToStep(state.step + 1);
+});
+$("#backButton").addEventListener("click", () => goToStep(Math.max(1, state.step - 1)));
+$("#caseForm").addEventListener("submit", event => { event.preventDefault(); $("#nextButton").click(); });
+
+function renderSummary() {
+  const data = caseData($("#caseForm"));
+  const names = Object.fromEntries(state.info.algorithms.map(a => [a.id, a.name]));
+  facts($("#summary"), [
+    [t("sum.evidence"), `${t(`kind.${state.kind}`)} · ${selectedTarget()}`],
+    [t("case.examiner"), data.examiner],
+    ...[["case.case_number", data.case_number], ["case.evidence_number", data.evidence_number]]
+      .filter(([, value]) => value).map(([key, value]) => [t(key), value]),
+    [t("sum.algorithms"), selectedAlgorithms().map(id => names[id]).join(" · ")],
+  ]);
+}
 
 async function loadDisks() {
   const list = $("#diskList");
@@ -192,41 +250,33 @@ $("#relaunchAdmin").addEventListener("click", async () => {
 
 function renderAlgorithms() {
   const saved = recall("algorithms").split(",").filter(Boolean);
-  $("#algorithms").replaceChildren(...state.info.algorithms.map(algorithm => el("label", { class: "chip" },
+  $("#algorithms").replaceChildren(...state.info.algorithms.map(algorithm => el("label", { class: "algorithm" },
     el("input", {
       type: "checkbox", value: algorithm.id,
       checked: saved.length ? saved.includes(algorithm.id) : algorithm.default,
     }),
-    algorithm.name)));
+    el("span", {}, el("b", {}, algorithm.name), el("small", {}, t(`alg.${algorithm.id}`))))));
 }
 
 function caseData(form) {
   return Object.fromEntries(new FormData(form).entries());
 }
 
-function selectedTarget() {
-  if (state.kind !== "disk") return $("#targetPath").value.trim();
-  return $("input[name=disk]:checked")?.value || $("#imagePath").value.trim();
-}
-
 $("#startButton").addEventListener("click", async () => {
   const error = $("#newError");
-  error.textContent = "";
-  const target = selectedTarget();
-  const algorithms = $$("#algorithms input:checked").map(input => input.value);
-  const form = $("#caseForm");
-  const data = caseData(form);
-  if (!target) { error.textContent = t("err.target"); return; }
-  if (!data.examiner.trim()) { error.textContent = t("err.examiner"); form.examiner.focus(); return; }
-  if (!algorithms.length) { error.textContent = t("err.algorithms"); return; }
-
+  const problem = [1, 2, 3, 4].map(stepError).find(Boolean);
+  if (problem) { error.textContent = problem; return; }
+  const data = caseData($("#caseForm"));
+  const algorithms = selectedAlgorithms();
+  const output = $("#outputPath").value.trim();
   remember("examiner", data.examiner);
   remember("organization", data.organization);
   remember("algorithms", algorithms.join(","));
+  remember("output", output);
 
   $("#startButton").disabled = true;
   try {
-    const job = await api("/api/jobs", { method: "POST", body: JSON.stringify({ kind: state.kind, target, algorithms, case: data }) });
+    const job = await post("/api/jobs", { kind: state.kind, target: selectedTarget(), algorithms, case: data, output, lang: I18N.lang });
     startProgress(job, "acquire");
   } catch (err) {
     error.textContent = err.message;
@@ -235,12 +285,19 @@ $("#startButton").addEventListener("click", async () => {
   }
 });
 
-// --- Elegir rutas (diálogo nativo en la app, explorador propio en la web) -------------------------
+function resetWizard() {
+  const form = $("#caseForm");
+  ["case_number", "evidence_number", "description", "notes"].forEach(name => { form[name].value = ""; });
+  $("#targetPath").value = "";
+  $("#imagePath").value = "";
+  $$("input[name=disk]").forEach(input => { input.checked = false; });
+  goToStep(1);
+}
+
+// --- Elegir rutas (diálogo de Windows en la app, explorador propio en la web) -------------------
 
 async function pick(mode) {
-  if (state.desktop) {
-    return state.desktop.pick(mode);
-  }
+  if (state.desktop) return state.desktop.pick(mode);
   return webBrowse(mode);
 }
 
@@ -255,10 +312,18 @@ $("#browseImage").addEventListener("click", async () => {
     $$("input[name=disk]").forEach(input => { input.checked = false; });
   }
 });
+$("#browseOutput").addEventListener("click", async () => {
+  const path = await pick("folder");
+  if (path) $("#outputPath").value = path;
+});
 $("#browseCopy").addEventListener("click", async () => {
   const kind = state.record?.kind;
   const path = await pick(kind === "directory" ? "folder" : kind === "disk" ? "image" : "file");
   if (path) $("#verifyForm").target.value = path;
+});
+$("#browseVerifyOutput").addEventListener("click", async () => {
+  const path = await pick("folder");
+  if (path) $("#verifyForm").output.value = path;
 });
 
 function webBrowse(mode) {
@@ -268,8 +333,7 @@ function webBrowse(mode) {
   const choose = $("#browserChoose");
   let current = "", parent = null, chosenFile = null;
 
-  choose.textContent = mode === "folder" ? I18N.lang === "es" ? "Elegir esta carpeta" : "Choose this folder"
-    : t(mode === "image" ? "browser.choose_image" : "browser.choose_file");
+  choose.textContent = t(mode === "folder" ? "browser.choose_folder" : mode === "image" ? "browser.choose_image" : "browser.choose_file");
   choose.disabled = mode !== "folder";
 
   async function open(path) {
@@ -300,7 +364,7 @@ function webBrowse(mode) {
   let resolver;
   function finish(value) {
     dialog.close();
-    resolver(value);
+    resolver?.(value);
   }
 
   $("#browserUp").onclick = () => open(parent ?? "");
@@ -318,7 +382,7 @@ function webBrowse(mode) {
   });
 }
 
-// --- Progreso ---------------------------------------------------------------------------------
+// --- Progreso: cálculo · verificación · informe PDF -------------------------------------------
 
 function startProgress(job, action) {
   state.job = job;
@@ -343,33 +407,37 @@ async function pollJob() {
     }
     state.job = null;
     if (job.state === "done") {
+      if (job.action === "acquire") resetWizard();
       await openRecord(job.record_id);
+      if (job.pdf) toast(t("pdf.saved", job.pdf));
+      if (job.pdf_error) toast(t("pdf.failed", job.pdf_error));
     } else {
       show(job.action === "verify" && state.record ? "record" : "new");
       toast(job.state === "cancelled" ? t("job.cancelled") : t("job.failed", job.error));
       if (job.state === "error") $("#newError").textContent = job.error;
     }
-  } catch (error) {
+  } catch {
     setTimeout(pollJob, 1000);
   }
 }
 
 function renderProgress(progress) {
-  const order = ["hashing", "verifying", "done"];
-  const phase = progress.phase === "scanning" || progress.phase === "preparing" ? null : progress.phase;
+  const order = ["hashing", "verifying", "report"];
+  const current = order.indexOf(progress.phase);
   $$(".phases li").forEach(li => {
     const index = order.indexOf(li.dataset.phase);
-    const current = order.indexOf(phase);
     li.classList.toggle("current", index === current);
-    li.classList.toggle("complete", current > index);
+    li.classList.toggle("complete", current > index || progress.phase === "done");
   });
-  $("#progressBar").style.width = `${progress.percent}%`;
-  $("#statPercent").textContent = `${progress.percent.toLocaleString(I18N.lang)} %`;
+  const percent = progress.phase === "report" || progress.phase === "done" ? 100 : progress.percent;
+  $("#progressBar").style.width = `${percent}%`;
+  $("#statPercent").textContent = `${percent.toLocaleString(locale())} %`;
   $("#statBytes").textContent = progress.bytes_total ? `${formatSize(progress.bytes_done)} / ${formatSize(progress.bytes_total)}` : "—";
   $("#statSpeed").textContent = progress.speed ? `${formatSize(progress.speed)}/s` : "—";
   $("#statEta").textContent = progress.eta !== null ? formatDuration(progress.eta) : "—";
   $("#statFiles").textContent = progress.files_total ? `${progress.files_done} / ${progress.files_total}` : "—";
-  $("#statCurrent").textContent = progress.phase === "scanning" ? t("progress.scanning") : progress.current;
+  $("#statCurrent").textContent = progress.phase === "scanning" ? t("progress.scanning")
+    : progress.phase === "report" ? t("progress.pdf") : progress.current;
 }
 
 $("#cancelButton").addEventListener("click", async () => {
@@ -381,9 +449,8 @@ $("#cancelButton").addEventListener("click", async () => {
 // --- Registro -------------------------------------------------------------------------------
 
 async function openRecord(id) {
-  const data = await api(`/api/records/${id}`);
-  state.record = data.record;
-  state.recordData = data;
+  state.recordData = await api(`/api/records/${id}`);
+  state.record = state.recordData.record;
   renderRecord();
   show("record");
 }
@@ -415,31 +482,79 @@ function renderRecord() {
     el("button", {
       type: "button", class: "ghost small",
       onclick: () => navigator.clipboard.writeText(record.hashes[algorithm]).then(() => toast(t("copy.done"))),
-    }, I18N.lang === "es" ? "Copiar" : "Copy"))));
+    }, t("copy")))));
   $("#compareInput").value = "";
   $("#compareResult").textContent = "";
   $("#dirHashNote").hidden = record.kind !== "directory";
 
-  $("#manifestButtons").replaceChildren(...record.algorithms.map(algorithm =>
-    el("button", { type: "button", class: "ghost small", "data-export": algorithm }, `.${algorithm}`)));
+  renderReports(data.reports);
+  $("#exportStatus").textContent = "";
 
   const form = $("#verifyForm");
   form.examiner.value = form.examiner.value || recall("examiner");
   form.target.value = "";
   form.notes.value = "";
+  form.output.value = recall("output") || state.info.reports_folder;
 
   const caseFacts = ["case_number", "evidence_number", "examiner", "organization", "description", "notes"]
     .filter(name => record.case[name]).map(name => [t(`case.${name}`), record.case[name]]);
   facts($("#recordCase"), caseFacts);
   facts($("#recordEvidence"), evidenceFacts(record));
 
-  renderTimeline(record, data.custody);
+  renderTimeline(record);
   renderFiles(record);
 
   const seal = $("#recordSeal");
   seal.className = data.seal_ok ? "ok-text" : "bad-text";
   seal.textContent = data.seal_ok ? t("seal.ok", record.seal.value) : t("seal.bad");
 }
+
+function renderReports(reports) {
+  const list = $("#reportList");
+  if (!reports.length) {
+    list.replaceChildren(el("li", { class: "muted" }, t("pdf.none")));
+    return;
+  }
+  list.replaceChildren(...reports.slice().reverse().map(report => {
+    const name = report.path.split(/[\\/]/).pop();
+    return el("li", { class: report.exists ? "" : "missing" },
+      pdfIcon(),
+      el("div", {}, el("b", {}, name), el("small", { class: "mono" }, report.exists ? report.path : t("pdf.missing"))),
+      report.exists ? el("div", { class: "report-actions" },
+        el("button", { type: "button", class: "secondary small", onclick: () => openPath(report.path, false) }, t("pdf.open")),
+        el("button", { type: "button", class: "ghost small", onclick: () => openPath(report.path, true) }, t("pdf.folder"))) : null);
+  }));
+}
+
+function pdfIcon() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.innerHTML = '<path d="M6 3h8l4 4v14H6z M14 3v4h4"/><path d="M9 13h6M9 17h4"/>';
+  return svg;
+}
+
+async function openPath(path, folder) {
+  try {
+    await post("/api/open", { path, folder });
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+$("#newPdf").addEventListener("click", async () => {
+  const folder = await pick("folder");
+  if (!folder) return;
+  const status = $("#exportStatus");
+  status.textContent = t("progress.pdf");
+  try {
+    const result = await post(`/api/records/${state.record.id}/pdf`, { folder, lang: I18N.lang });
+    status.textContent = t("pdf.saved", result.pdf);
+    state.recordData = await api(`/api/records/${state.record.id}`);
+    renderReports(state.recordData.reports);
+  } catch (error) {
+    status.textContent = error.message;
+  }
+});
 
 function facts(container, rows) {
   container.replaceChildren(...rows.flatMap(([key, value]) => [el("dt", {}, key), el("dd", {}, String(value))]));
@@ -450,7 +565,7 @@ function evidenceFacts(record) {
   const details = record.details || {};
   const kindLabel = record.kind === "disk"
     ? { image: t("ev.image"), volume: t("ev.volume") }[source.kind] || t("kind.disk") : t(`kind.${record.kind}`);
-  const rows = [[t("ev.kind"), kindLabel], [t("ev.size"), `${formatSize(record.size)} (${record.size.toLocaleString(I18N.lang)} bytes)`]];
+  const rows = [[t("ev.kind"), kindLabel], [t("ev.size"), `${formatSize(record.size)} (${record.size.toLocaleString(locale())} bytes)`]];
   if (source.model) rows.push([t("ev.model"), source.model]);
   if (source.serial) rows.push([t("ev.serial"), source.serial]);
   if (source.bus) rows.push([t("ev.bus"), source.bus]);
@@ -505,7 +620,7 @@ function renderFiles(record) {
   const all = record.details.files.filter(file => !filter || file.path.toLowerCase().includes(filter));
   $("#filesBody").replaceChildren(...all.slice(0, FILES_SHOWN).map(file => el("tr", {},
     el("td", { class: "mono" }, file.path),
-    el("td", {}, file.size.toLocaleString(I18N.lang)),
+    el("td", {}, file.size.toLocaleString(locale())),
     el("td", { class: file.hashes ? "mono" : "bad-text" }, file.hashes ? file.hashes[algorithm] : t("files.error", file.error)))));
   $("#filesMore").textContent = all.length > FILES_SHOWN ? t("files.more", FILES_SHOWN, all.length) : "";
 }
@@ -530,13 +645,13 @@ $("#compareInput").addEventListener("input", event => {
 
 $("#verifyForm").addEventListener("submit", async event => {
   event.preventDefault();
-  const form = event.target;
-  const data = caseData(form);
+  const data = caseData(event.target);
   if (!data.examiner.trim()) { toast(t("err.verifier")); return; }
   remember("examiner", data.examiner);
+  if (data.output) remember("output", data.output);
   try {
-    const job = await api(`/api/records/${state.record.id}/verify`, {
-      method: "POST", body: JSON.stringify({ examiner: data.examiner, target: data.target || null, notes: data.notes }),
+    const job = await post(`/api/records/${state.record.id}/verify`, {
+      examiner: data.examiner, target: data.target || null, notes: data.notes, output: data.output || null, lang: I18N.lang,
     });
     startProgress(job, "verify");
   } catch (error) {
@@ -550,56 +665,6 @@ $("#deleteRecord").addEventListener("click", async () => {
   state.record = null;
   show("history");
 });
-
-// --- Exportar ------------------------------------------------------------------------------
-
-document.addEventListener("click", async event => {
-  const button = event.target.closest("[data-export]");
-  if (!button || !state.record) return;
-  const format = button.dataset.export;
-  const status = $("#exportStatus");
-  status.textContent = "";
-  try {
-    if (format === "pdf") {
-      await exportPdf();
-      return;
-    }
-    const data = await api(`/api/records/${state.record.id}/export`, {
-      method: "POST", body: JSON.stringify({ format, lang: I18N.lang }),
-    });
-    if (state.desktop) {
-      const filter = { html: "HTML (*.html)", txt: "Texto (*.txt)", json: "JSON (*.json)", csv: "CSV (*.csv)" }[format]
-        || `${format.toUpperCase()} (*.${format})`;
-      const path = await state.desktop.save_text(data.filename, data.content, filter);
-      if (path) status.textContent = t("export.saved", path);
-    } else {
-      const bom = format === "csv" ? "﻿" : "";
-      const url = URL.createObjectURL(new Blob([bom + data.content], { type: `${data.mime};charset=utf-8` }));
-      el("a", { href: url, download: data.filename }).click();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-      status.textContent = t("export.downloaded", data.filename);
-    }
-  } catch (error) {
-    status.textContent = error.message;
-  }
-});
-
-async function exportPdf() {
-  const id = state.record.id;
-  const logPdf = () => api(`/api/records/${id}/export`, { method: "POST", body: JSON.stringify({ format: "pdf", lang: I18N.lang }) });
-  if (state.desktop) {
-    const base = (state.record.case.evidence_number || state.record.case.case_number || state.record.label)
-      .replace(/[^\w.-]+/g, "_").slice(0, 60);
-    const path = await state.desktop.save_pdf(id, I18N.lang, `ForensiX-Hash_${base}_${id.slice(0, 8)}.pdf`);
-    if (path) {
-      $("#exportStatus").textContent = t("export.saved", path);
-      await logPdf();
-    }
-  } else {
-    window.open(`/report/${id}?lang=${I18N.lang}&print=1`, "_blank", "noopener");
-    await logPdf();
-  }
-}
 
 // --- Registros ----------------------------------------------------------------------------
 
@@ -636,40 +701,12 @@ function renderHistory() {
         el("div", { class: "title" }, item.label),
         el("div", { class: "sub" }, sub),
         el("div", { class: "sub mono" }, `SHA-256 ${item.hashes.sha256 || Object.values(item.hashes).at(-1)}`)),
-      el("div", {}, el("span", { class: `pill ${status}` }, t(`status.${status}`)),
-        el("div", { class: "sub", style: "text-align:right;margin-top:6px" }, t("history.verifications", item.verifications))));
+      el("div", { class: "history-side" }, el("span", { class: `pill ${status}` }, t(`status.${status}`)),
+        el("div", { class: "sub" }, t("history.verifications", item.verifications))));
   }));
 }
 
 $("#historySearch").addEventListener("input", renderHistory);
-
-// --- Verificar desde un informe JSON ----------------------------------------------------------------
-
-async function importReport(file) {
-  const error = $("#importError");
-  error.textContent = "";
-  try {
-    const result = await api("/api/import", { method: "POST", body: await file.text() });
-    await openRecord(result.id);
-  } catch (err) {
-    error.textContent = err.message || t("import.bad");
-  }
-}
-
-$("#importFile").addEventListener("change", event => {
-  const file = event.target.files[0];
-  if (file) importReport(file);
-  event.target.value = "";
-});
-const drop = $("#dropZone");
-drop.addEventListener("dragover", event => { event.preventDefault(); drop.classList.add("over"); });
-drop.addEventListener("dragleave", () => drop.classList.remove("over"));
-drop.addEventListener("drop", event => {
-  event.preventDefault();
-  drop.classList.remove("over");
-  const file = event.dataTransfer.files[0];
-  if (file) importReport(file);
-});
 
 // --- Custodia ---------------------------------------------------------------------------------
 
@@ -688,7 +725,7 @@ async function loadCustody() {
   body.replaceChildren(...data.events.slice().reverse().map(event => {
     let action = t(`act.${event.action}`);
     if (event.action === "verified") action += `: ${t(`status.${event.result}`)}`;
-    if (event.action === "exported") action += ` (${event.format})`;
+    if (event.action === "exported") action += ` (${(event.format || "").toUpperCase()})`;
     const record = event.record_id
       ? el("a", { href: "#", onclick: e => { e.preventDefault(); openRecord(event.record_id).catch(err => toast(err.message)); } },
         event.evidence_number || event.target) : "";
@@ -699,12 +736,72 @@ async function loadCustody() {
   }));
 }
 
-// --- Inicio ---------------------------------------------------------------------------------
+// --- Ajustes: tema, idioma y actualizaciones ----------------------------------------------------
+
+const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+
+function applyTheme(choice) {
+  const theme = choice === "system" ? (darkQuery.matches ? "dark" : "light") : choice;
+  document.documentElement.dataset.theme = theme;
+  $$("[data-theme-choice]").forEach(button => button.classList.toggle("active", button.dataset.themeChoice === choice));
+}
+
+const themeChoice = () => recall("theme") || "system";
+darkQuery.addEventListener("change", () => { if (themeChoice() === "system") applyTheme("system"); });
+$$("[data-theme-choice]").forEach(button => button.addEventListener("click", () => {
+  remember("theme", button.dataset.themeChoice);
+  applyTheme(button.dataset.themeChoice);
+}));
+
+$$("[data-lang-choice]").forEach(button => button.addEventListener("click", () => I18N.setLang(button.dataset.langChoice)));
+
+function renderLanguage() {
+  $$("[data-lang-choice]").forEach(button => button.classList.toggle("active", button.dataset.langChoice === I18N.lang));
+}
+
+const autoUpdate = () => recall("autoUpdate") !== "0";
+$("#autoUpdate").addEventListener("change", event => remember("autoUpdate", event.target.checked ? "1" : "0"));
+
+async function checkUpdates(manual) {
+  const status = $("#updateStatus");
+  if (manual) status.textContent = t("update.checking");
+  try {
+    state.update = await api("/api/update");
+  } catch (error) {
+    if (manual) status.textContent = t("update.error", error.message);
+    return;
+  }
+  if (state.update.available) {
+    $("#updateText").textContent = t("update.available", state.update.latest);
+    $("#updateNotes").href = state.update.notes_url;
+    $("#updateBanner").hidden = false;
+    if (manual) status.textContent = t("update.available", state.update.latest);
+  } else if (manual) {
+    status.textContent = t("update.latest", state.update.current);
+  }
+}
+
+$("#checkUpdates").addEventListener("click", () => checkUpdates(true));
+$("#updateDismiss").addEventListener("click", () => { $("#updateBanner").hidden = true; });
+$("#updateInstall").addEventListener("click", async () => {
+  if (state.desktop && state.update?.can_install) {
+    $("#updateInstall").disabled = true;
+    $("#updateText").textContent = t("update.installing");
+    const error = await state.desktop.install_update();
+    if (error) {
+      $("#updateText").textContent = error;
+      $("#updateInstall").disabled = false;
+    }
+  } else {
+    window.open(state.update?.notes_url || state.info.repo + "/releases/latest", "_blank", "noopener");
+  }
+});
 
 function renderAbout() {
   facts($("#aboutFacts"), [
     [t("about.version"), `${state.info.app} ${state.info.version}`],
     [t("about.data"), state.info.home],
+    [t("about.reports"), recall("output") || state.info.reports_folder],
     [t("about.repo"), state.info.repo],
   ]);
   const pill = $("#adminPill");
@@ -713,11 +810,13 @@ function renderAbout() {
   pill.textContent = t(state.info.admin ? "admin.on" : "admin.off");
 }
 
-$("#language").addEventListener("click", () => I18N.setLang(I18N.lang === "es" ? "en" : "es"));
 document.addEventListener("langchange", () => {
-  $("#language").textContent = I18N.lang === "es" ? "EN" : "ES";
+  renderLanguage();
   $("#targetPath").placeholder = t(state.kind === "directory" ? "path.directory" : "path.file");
-  if (state.info) renderAbout();
+  if (!state.info) return;
+  renderAbout();
+  renderAlgorithms();
+  if (state.step === 4) renderSummary();
   if (state.disks.length) renderDisks();
   if (state.record && $("#view-record").classList.contains("active")) renderRecord();
   if ($("#view-history").classList.contains("active")) renderHistory();
@@ -729,18 +828,24 @@ window.addEventListener("pywebviewready", () => {
   if (state.kind === "disk") loadDisks();
 });
 
+// --- Inicio ---------------------------------------------------------------------------------
+
 (async function init() {
+  applyTheme(themeChoice());
   I18N.apply();
-  $("#language").textContent = I18N.lang === "es" ? "EN" : "ES";
+  renderLanguage();
   state.info = await api("/api/info");
-  $("#appVersion").textContent = `v${state.info.version}`;
   renderAlgorithms();
   renderAbout();
+  $("#autoUpdate").checked = autoUpdate();
   const form = $("#caseForm");
   form.examiner.value = recall("examiner");
   form.organization.value = recall("organization");
+  $("#outputPath").value = recall("output") || state.info.reports_folder;
   setKind("file");
+  goToStep(1);
   await openLink();
+  if (autoUpdate()) checkUpdates(false);
 })();
 
 window.addEventListener("hashchange", () => { if (state.info) openLink(); });
@@ -758,6 +863,7 @@ async function openLink() {
     } else if (params.get("kind")) {
       show("new");
       setKind(params.get("kind"));
+      goToStep(1);
     } else if (params.get("view")) {
       show(params.get("view"));
     }

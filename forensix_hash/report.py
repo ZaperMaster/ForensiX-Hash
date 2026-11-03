@@ -184,20 +184,26 @@ def evidence_rows(record: dict, t: dict, lang: str) -> list[tuple[str, str]]:
 # --- HTML ----------------------------------------------------------------------------
 
 _CSS = """
-:root{--ink:#0f172a;--muted:#5b6476;--line:#dfe3ea;--soft:#f5f7fa;--accent:#0e7c86;--ok:#0f7b48;--bad:#b42318;--warn:#a15c07}
-*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font:13px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+:root{--ink:#18181b;--muted:#71717a;--line:#e7e7ec;--soft:#f5f5f8;--accent:#2f6bff;--accent-soft:#eef3ff;
+--ok:#15803d;--ok-soft:#e8f6ee;--bad:#dc2626;--bad-soft:#fdecec;--warn:#b45309;--warn-soft:#fdf3e2;
+--mono:"Cascadia Mono",Consolas,monospace}
+*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font:13px/1.55 "Segoe UI",system-ui,-apple-system,sans-serif;
+-webkit-print-color-adjust:exact;print-color-adjust:exact}
 main{max-width:960px;margin:0 auto;padding:32px 36px}
-header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;border-bottom:3px solid var(--ink);padding-bottom:16px}
-.brand{display:flex;gap:12px;align-items:center}.brand b{font-size:20px;letter-spacing:.3px}.brand span{color:var(--accent)}
-h1{font-size:22px;margin:18px 0 2px}.sub{color:var(--muted);margin:0}
+header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.brand{display:flex;gap:10px;align-items:center}.brand b{font-size:17px;font-weight:650}.brand span{color:var(--accent)}
+h1{font-size:23px;margin:18px 0 2px;letter-spacing:-.4px}.sub{color:var(--muted);margin:0}
 .meta{text-align:right;color:var(--muted);font-size:12px}
-.verdict{display:flex;gap:16px;align-items:center;margin:22px 0;padding:14px 18px;border-radius:10px;border:1px solid var(--line);background:var(--soft)}
-.badge{font-weight:700;letter-spacing:.6px;padding:6px 12px;border-radius:6px;color:#fff;white-space:nowrap}
-.verified .badge{background:var(--ok)}.mismatch .badge,.error .badge{background:var(--bad)}.pending .badge{background:var(--warn)}
-h2{font-size:14px;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin:26px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}
-table{width:100%;border-collapse:collapse}th,td{text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid var(--line)}
-th{width:32%;color:var(--muted);font-weight:600}thead th{width:auto;background:var(--soft)}
-.mono,code{font-family:Consolas,"Cascadia Mono",monospace;font-size:12px;word-break:break-all}
+.verdict{display:flex;gap:16px;align-items:center;margin:22px 0;padding:14px 18px;border-radius:12px;background:var(--soft)}
+.badge{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px;padding:6px 14px;border-radius:99px;white-space:nowrap}
+.badge:before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.verified{background:var(--ok-soft)}.verified .badge{background:#fff;color:var(--ok)}
+.mismatch,.error{background:var(--bad-soft)}.mismatch .badge,.error .badge{background:#fff;color:var(--bad)}
+.pending{background:var(--warn-soft)}.pending .badge{background:#fff;color:var(--warn)}
+h2{font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin:28px 0 8px;font-weight:700}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{width:32%;color:var(--muted);font-weight:500}thead th{width:auto;background:var(--soft);font-weight:600;font-size:12px}
+.mono,code{font-family:var(--mono);font-size:12px;word-break:break-all}
 .note{color:var(--muted);font-size:12px;margin:6px 0 0}
 .ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}
 .sign{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:12px}.sign div{border-top:1px solid var(--ink);padding-top:6px;margin-top:56px;color:var(--muted)}
@@ -208,10 +214,11 @@ footer{margin-top:32px;color:var(--muted);font-size:11px;border-top:1px solid va
 """
 
 LOGO_SVG = (
-    '<svg width="40" height="40" viewBox="0 0 64 64" aria-hidden="true">'
-    '<rect width="64" height="64" rx="14" fill="#0b1220"/>'
-    '<path d="M32 9 50 16v14c0 12-7.6 21-18 25-10.4-4-18-13-18-25V16z" fill="none" stroke="#2dd4bf" stroke-width="3.5" stroke-linejoin="round"/>'
-    '<path d="M27 22l-3 20M38 22l-3 20M21 28h22M20 36h22" stroke="#e2e8f0" stroke-width="3.2" stroke-linecap="round"/>'
+    '<svg width="36" height="36" viewBox="0 0 64 64" aria-hidden="true">'
+    '<defs><linearGradient id="fx" x1="0" y1="0" x2="1" y2="1">'
+    '<stop offset="0" stop-color="#2f6bff"/><stop offset="1" stop-color="#18b4f5"/></linearGradient></defs>'
+    '<rect width="64" height="64" rx="16" fill="url(#fx)"/>'
+    '<path d="M27 18l-4 28M41 18l-4 28M18 27h29M16 37h29" stroke="#fff" stroke-width="5" stroke-linecap="round"/>'
     '</svg>'
 )
 
@@ -429,4 +436,5 @@ def export(record: dict, fmt: str, custody: list[dict] | None = None, lang: str 
 def filename(record: dict, fmt: str) -> str:
     base = record["case"].get("evidence_number") or record["case"].get("case_number") or record["label"]
     safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in base)[:60].strip("_") or "evidencia"
-    return f"ForensiX-Hash_{safe}_{record['id'][:8]}.{EXPORTS[fmt][1]}"
+    extension = "pdf" if fmt == "pdf" else EXPORTS[fmt][1]
+    return f"ForensiX-Hash_{safe}_{record['id'][:8]}.{extension}"

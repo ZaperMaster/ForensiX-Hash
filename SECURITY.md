@@ -14,8 +14,8 @@ El autor no se hace responsable del uso indebido de la herramienta.
 
 ## Informar de una vulnerabilidad en ForensiX Hash
 
-Si encuentras un fallo de seguridad **en la propia herramienta** (por ejemplo, en la API local, en la
-importación de informes JSON, en el sello de los registros o en la cadena de custodia):
+Si encuentras un fallo de seguridad **en la propia herramienta** (por ejemplo, en la API local, en las
+actualizaciones, en el sello de los registros o en la cadena de custodia):
 
 1. **No abras una issue pública.**
 2. Usa la opción privada de GitHub: pestaña **Security → Report a vulnerability** de este repositorio.
@@ -33,7 +33,12 @@ Intentaré responder en un plazo de 7 días y avisarte cuando esté corregido.
 - **Registros sellados:** cada registro lleva el SHA-256 de su contenido; un informe JSON editado se marca
   como modificado y no se importa.
 - **Cadena de custodia encadenada:** cada evento incluye el hash del anterior; borrar o editar uno se detecta.
-- **Sin conexión:** la app no envía datos a ningún servidor.
+- **Informe fuera de la evidencia:** el PDF no se puede guardar dentro de la carpeta ni en el disco que se hashea.
+- **Actualizaciones firmadas:** cada versión publica `SHA256SUMS.txt` firmado con Ed25519. La app solo instala un
+  `.exe` cuya firma sea válida con la clave pública que lleva dentro y cuyo SHA-256 coincida. La clave privada nunca
+  sale del equipo del autor.
+- **Sin enviar datos:** evidencias, registros e informes no salen del equipo. La única conexión es la consulta de
+  actualizaciones a GitHub (se puede desactivar en Ajustes).
 - **Repositorio:** análisis de código con CodeQL, Dependabot (alertas y actualizaciones de seguridad),
   escaneo de secretos con protección al subir y la rama `main` protegida.
 

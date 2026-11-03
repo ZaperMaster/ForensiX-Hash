@@ -12,6 +12,7 @@ distribuye bajo su propia licencia, que se reproduce a continuación. Generado c
 | cffi | 2.1.1 | MIT-0 |
 | click | 8.5.0 | BSD-3-Clause |
 | clr_loader | 0.3.1 | MIT |
+| cryptography | 50.0.2 | Apache-2.0 OR BSD-3-Clause |
 | fastapi | 0.161.1 | MIT |
 | h11 | 0.16.0 | MIT License |
 | idna | 3.20 | BSD-3-Clause |
@@ -230,6 +231,16 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+## cryptography 50.0.2
+
+<https://cryptography.io/en/latest/changelog/>
+
+```text
+This software is made available under the terms of *either* of the licenses
+found in LICENSE.APACHE or LICENSE.BSD. Contributions to cryptography are made
+under the terms of *both* these licenses.
 ```
 
 ## fastapi 0.161.1

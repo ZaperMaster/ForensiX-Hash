@@ -17,14 +17,14 @@ from time import monotonic, sleep
 import uvicorn
 import webview
 
-from forensix_hash import APP_NAME
+from forensix_hash import APP_NAME, updater
 from forensix_hash.devices import relaunch_as_admin
 from web.server import app
 
 
 APP_USER_MODEL_ID = "ForensiX.Hash.Desktop"
-BACKGROUND_COLOR = "#0a0f1a"  # Igual que --bg en static/css/styles.css
-BORDER_COLOR = "#22314a"  # Igual que --border
+BACKGROUND_COLOR = "#f6f6f8"  # Igual que --bg (tema claro) en static/css/styles.css
+BORDER_COLOR = "#d4d4dc"  # Igual que --border-strong
 WINDOW_SIZE = (1240, 860)
 MIN_WINDOW_SIZE = (820, 600)
 SERVER_START_TIMEOUT = 15
@@ -77,7 +77,7 @@ def style_frame(hwnd: int) -> None:
     DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND = 33, 2
     DWMWA_BORDER_COLOR = 34
 
-    set_attribute(DWMWA_USE_IMMERSIVE_DARK_MODE, 1)
+    set_attribute(DWMWA_USE_IMMERSIVE_DARK_MODE, 0)
     set_attribute(DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND)
     set_attribute(DWMWA_BORDER_COLOR, _colorref(BORDER_COLOR))
 
@@ -268,6 +268,26 @@ class DesktopApi:
             return None
         return selection if isinstance(selection, str) else selection[0]
 
+    def start_maximized(self) -> bool:
+        """La app se abre a pantalla completa (sin tapar la barra de tareas)."""
+
+        if self._restore_bounds is None:
+            self.toggle_maximize()
+        return self.is_maximized()
+
+    def install_update(self) -> str | None:
+        """Descarga, comprueba la firma e instala la versión nueva; después se cierra esta.
+
+        Devuelve un mensaje de error para la interfaz, o None si se está reiniciando.
+        """
+
+        try:
+            updater.install(updater.check())
+        except updater.UpdateError as error:
+            return str(error)
+        self._window.destroy()
+        return None
+
     def relaunch_as_admin(self) -> bool:
         """Abre otra instancia como administrador (UAC) y cierra esta."""
 
@@ -378,6 +398,7 @@ def server_port(server: uvicorn.Server) -> int:
 
 def main() -> None:
     set_app_user_model_id()
+    updater.cleanup()
     server, thread = start_server()
 
     try:

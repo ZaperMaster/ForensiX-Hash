@@ -1,6 +1,6 @@
 """Línea de comandos de ForensiX Hash.
 
-    python -m forensix_hash file  RUTA      --examiner "Nombre" [--case C-1] [--out informe.html]
+    python -m forensix_hash file  RUTA      --examiner "Nombre" [--case C-1] [--pdf CARPETA]
     python -m forensix_hash dir   CARPETA   --examiner "Nombre"
     python -m forensix_hash disk  \\\\.\\PhysicalDrive1 --examiner "Nombre"   (como administrador)
     python -m forensix_hash verify ID       --examiner "Nombre" [--target COPIA]
@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from threading import Event, Thread
 
-from . import APP_NAME, __version__, devices, engine, report, store
+from . import APP_NAME, __version__, devices, engine, pdf, report, store
 from .hasher import ALGORITHMS, DEFAULT_ALGORITHMS, Cancelled
 from .progress import Progress
 from .report import human_size
@@ -86,6 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
         sub.add_argument("--notes", default="")
         sub.add_argument("--algorithms", default=",".join(DEFAULT_ALGORITHMS),
                          help=f"separados por comas: {', '.join(ALGORITHMS)}")
+        sub.add_argument("--pdf", metavar="CARPETA", help="guardar el informe PDF en esta carpeta")
         sub.add_argument("--out", action="append", help="informe a generar (.html, .txt, .json, .csv, .sha256…)")
         sub.add_argument("--lang", default="es", choices=["es", "en"])
 
@@ -111,10 +112,13 @@ def main(argv=None) -> int:
         if args.command in KIND_BY_COMMAND:
             case = {"examiner": args.examiner, "case_number": args.case, "evidence_number": args.evidence,
                     "organization": args.organization, "description": args.description, "notes": args.notes}
+            kind = KIND_BY_COMMAND[args.command]
+            folder = pdf.check_destination(kind, engine._resolve_target(kind, args.target), args.pdf) if args.pdf else None
             record = _run_with_progress(lambda: engine.acquire(
-                KIND_BY_COMMAND[args.command], args.target, args.algorithms.split(","), case, progress, cancel),
-                progress)
+                kind, args.target, args.algorithms.split(","), case, progress, cancel), progress)
             _print_record(record)
+            if folder:
+                print(f"  Informe PDF: {pdf.save_report(record, folder, args.lang)}")
             _write_reports(record, args.out, args.lang)
             return 0 if record["verifications"][-1]["result"] == "verified" else 2
 
@@ -150,7 +154,7 @@ def main(argv=None) -> int:
         return 130
     except Cancelled:
         return 130
-    except (OSError, ValueError, KeyError) as error:
+    except (OSError, ValueError, KeyError, RuntimeError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
     return 0

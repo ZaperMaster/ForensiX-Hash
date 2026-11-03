@@ -22,9 +22,10 @@
     return Boolean(target.closest("button, input, a, select, textarea"));
   }
 
-  window.addEventListener("pywebviewready", () => {
+  window.addEventListener("pywebviewready", async () => {
     api = window.pywebview.api;
     root.classList.add("desktop");
+    setMaximized(await api.start_maximized());  // Se abre a pantalla completa
 
     // El arrastre empieza al mover el ratón unos píxeles, para no tapar el doble clic.
     const titlebar = document.getElementById("titlebar");

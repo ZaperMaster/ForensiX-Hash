@@ -8,6 +8,7 @@ CORS) y un Host local (evita ataques de DNS rebinding).
 import json
 import os
 import string
+import subprocess
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -15,7 +16,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from forensix_hash import APP_NAME, REPO_URL, __version__, devices, report, store
+from forensix_hash import APP_NAME, REPO_URL, __version__, devices, pdf, report, store, updater
 from forensix_hash.hasher import ALGORITHMS, DEFAULT_ALGORITHMS
 from forensix_hash.jobs import JobManager, error_message
 from forensix_hash.record import CASE_FIELDS, seal_ok
@@ -49,6 +50,9 @@ async def local_only(request: Request, call_next):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    if request.url.path.startswith("/static/"):
+        # Tras una actualización, la interfaz nueva debe verse sin restos en caché.
+        response.headers["Cache-Control"] = "no-cache"
     return response
 
 
@@ -68,17 +72,27 @@ class AcquireRequest(BaseModel):
     target: str = Field(min_length=1, max_length=4096)
     algorithms: list[str] = Field(default_factory=lambda: list(DEFAULT_ALGORITHMS), min_length=1)
     case: CaseData
+    output: str | None = Field(None, max_length=4096)   # Carpeta del informe PDF
+    lang: str = Field("es", pattern="^(es|en)$")
 
 
 class VerifyRequest(BaseModel):
     examiner: str = Field("", max_length=200)
     target: str | None = Field(None, max_length=4096)
     notes: str = Field("", max_length=2000)
+    output: str | None = Field(None, max_length=4096)
+    lang: str = Field("es", pattern="^(es|en)$")
+
+
+class OpenRequest(BaseModel):
+    path: str = Field(min_length=1, max_length=4096)
+    folder: bool = False
 
 
 class ExportRequest(BaseModel):
-    format: str
+    format: str = "pdf"
     lang: str = Field("es", pattern="^(es|en)$")
+    folder: str | None = Field(None, max_length=4096)
 
 
 def _bad_request(error: Exception) -> HTTPException:
@@ -123,7 +137,19 @@ def info():
                        for key, name in ALGORITHMS.items()],
         "case_fields": list(CASE_FIELDS),
         "home": str(store.home()),
+        "reports_folder": str(pdf.default_folder()),
+        "pdf_available": pdf.find_browser() is not None,
     }
+
+
+@app.get("/api/update")
+def check_update():
+    """¿Hay una versión nueva publicada en GitHub? (Ajustes → Actualizaciones)."""
+
+    try:
+        return updater.check()
+    except updater.UpdateError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
 
 
 @app.get("/api/disks")
@@ -166,7 +192,8 @@ def browse(path: str = ""):
 @app.post("/api/jobs")
 def start_acquisition(request: AcquireRequest):
     try:
-        job = jobs.acquire(request.kind, request.target, request.algorithms, request.case.model_dump())
+        job = jobs.acquire(request.kind, request.target, request.algorithms, request.case.model_dump(),
+                           request.output or None, request.lang)
     except (OSError, ValueError) as error:
         raise _bad_request(error) from error
     return job.snapshot()
@@ -198,8 +225,44 @@ def records():
 @app.get("/api/records/{record_id}")
 def get_record(record_id: str):
     record = _record(record_id)
+    custody = store.record_custody(record_id)
+    reports = [e["path"] for e in custody if e.get("format") == "pdf" and e.get("path")]
     return {"record": record, "summary": store.summary(record), "seal_ok": seal_ok(record),
-            "custody": store.record_custody(record_id)}
+            "custody": custody, "reports": [{"path": p, "exists": Path(p).exists()} for p in reports]}
+
+
+@app.post("/api/records/{record_id}/pdf")
+def record_pdf(record_id: str, request: ExportRequest):
+    """Vuelve a crear el informe PDF del registro en una carpeta (por defecto, Documentos)."""
+
+    record = _record(record_id)
+    try:
+        folder = pdf.check_destination(record, record["target"], request.folder or pdf.default_folder())
+        return {"pdf": str(pdf.save_report(record, folder, request.lang))}
+    except (OSError, ValueError, RuntimeError) as error:
+        raise _bad_request(error) from error
+
+
+def _known_reports() -> set[str]:
+    return {os.path.normcase(e["path"]) for e in store.read_custody() if e.get("format") == "pdf" and e.get("path")}
+
+
+@app.post("/api/open")
+def open_report(request: OpenRequest):
+    """Abre un informe PDF creado por la app, o su carpeta. Solo informes de la cadena de custodia."""
+
+    if os.path.normcase(request.path) not in _known_reports():
+        raise HTTPException(status_code=404, detail="Ese informe no lo ha creado ForensiX Hash.")
+    path = Path(request.path)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="El informe ya no está en esa carpeta.")
+    if os.name != "nt":
+        raise HTTPException(status_code=400, detail="Solo disponible en Windows.")
+    if request.folder:
+        subprocess.Popen(["explorer", "/select,", str(path)])
+    else:
+        os.startfile(str(path))  # Solo PDF creados por la app (comprobado arriba)
+    return {"opened": str(path)}
 
 
 @app.delete("/api/records/{record_id}")
@@ -214,7 +277,8 @@ def remove_record(record_id: str):
 def verify_record(record_id: str, request: VerifyRequest):
     _record(record_id)
     try:
-        job = jobs.verify(record_id, request.examiner, request.target or None, request.notes)
+        job = jobs.verify(record_id, request.examiner, request.target or None, request.notes,
+                          request.output or None, request.lang)
     except (OSError, ValueError) as error:
         raise _bad_request(error) from error
     return job.snapshot()
