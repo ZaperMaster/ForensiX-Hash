@@ -15,7 +15,7 @@
   <a href="https://github.com/ZaperMaster/ForensiX-Hash/releases/latest"><img src="https://img.shields.io/github/v/release/ZaperMaster/ForensiX-Hash?label=versi%C3%B3n&color=2f6bff" alt="Versión"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white" alt="Windows 10 y 11">
   <img src="https://img.shields.io/badge/Python-3.13%2B-3776AB?logo=python&logoColor=white" alt="Python 3.13+">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-PolyForm%20Strict-lightgrey" alt="Licencia PolyForm Strict"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-green" alt="Licencia MIT"></a>
   <a href="https://zapermaster.github.io/ForensiX-Hash/"><img src="https://img.shields.io/badge/web-zapermaster.github.io-2f6bff" alt="Web"></a>
 </p>
 
@@ -223,12 +223,9 @@ tests/                    Pruebas del motor, el PDF, las actualizaciones, la lí
 
 ## Licencia
 
-[PolyForm Strict 1.0.0](LICENSE) © 2026 Alejandro Zapata. Todos los demás derechos reservados.
-
-- **Sí se puede:** descargar y usar ForensiX Hash gratis para cualquier fin no comercial (uso personal, estudio,
-  organizaciones sin ánimo de lucro, instituciones públicas…) y leer su código.
-- **No se puede:** venderla ni usarla con fines comerciales, ni usar su código (copiarlo, modificarlo o reutilizarlo en
-  otros proyectos) ni redistribuirla.
+**Código abierto** con licencia [MIT](LICENSE) © 2026 Alejandro Zapata: puedes usarla, estudiarla, modificarla y
+redistribuirla libremente, también con fines comerciales, conservando el aviso de copyright. Se ofrece sin garantía.
+Las contribuciones son bienvenidas: mira [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Las librerías de terceros incluidas en el `.exe` y sus licencias están en
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

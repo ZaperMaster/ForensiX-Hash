@@ -19,3 +19,4 @@ Primera versión estable.
 - **Instalador** para Windows (`ForensiX-Hash_1.0.0_x64-setup.exe`): sin pedir administrador, accesos directos y
   desinstalador que conserva los registros. También `.exe` portable.
 - App de escritorio para Windows a pantalla completa, versión web local y línea de comandos.
+- **Código abierto** con licencia MIT.
