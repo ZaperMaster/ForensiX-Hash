@@ -18,13 +18,14 @@ python -m web            # http://127.0.0.1:8000
 | GET | `/api/info` | Versión, algoritmos, carpeta de informes y permisos |
 | GET | `/api/disks` | Discos y volúmenes |
 | GET | `/api/browse?path=` | Contenido de una carpeta |
-| POST | `/api/jobs` | Calcular, verificar y crear el PDF (`kind`, `target`, `algorithms`, `case`, `output`, `lang`) |
+| POST | `/api/jobs` | Calcular, verificar y crear el PDF (`kind`, `target`, `algorithms`, `case`, `output`, `lang`, `image`, `timestamp`) |
 | GET / DELETE | `/api/jobs/{id}` | Progreso (y ruta del PDF al terminar) / cancelar |
 | GET | `/api/records` | Registros |
 | GET / DELETE | `/api/records/{id}` | Registro con su custodia e informes / eliminar de la lista |
 | POST | `/api/records/{id}/verify` | Verificar de nuevo (`examiner`, `target`, `output`) |
 | POST | `/api/records/{id}/pdf` | Crear otro PDF (`folder`, `lang`) |
 | POST | `/api/open` | Abrir un PDF creado por la app o su carpeta |
+| POST | `/api/import` | Importar un informe PDF de otro equipo (se comprueban sello y firma) |
 | GET | `/api/custody` | Cadena de custodia y su comprobación |
 | GET | `/api/update` | ¿Hay una versión nueva en GitHub? |
 | GET | `/report/{id}` | Informe HTML (lo que se imprime en el PDF) |

@@ -32,8 +32,9 @@
 </p>
 
 Herramienta de **hashing forense** de la marca **ForensiX**. Calcula los hashes de un **archivo**, una **carpeta** o un
-**disco completo** (pendrives, volúmenes e imágenes `.dd`/`.raw`/`.iso`), los **verifica** con una segunda lectura y
-guarda un **informe PDF** con quién lo hizo, cuándo se calculó y cuándo se verificó.
+**disco completo** (pendrives, volúmenes e imágenes `.dd`/`.raw`/`.iso`/`.E01`), crea la **imagen forense**, los
+**verifica** con una segunda lectura y guarda un **informe PDF firmado** con quién lo hizo, cuándo se calculó y cuándo
+se verificó, con **sello de tiempo** de una autoridad externa.
 
 **Instalar:** descarga `ForensiX-Hash_x.y.z_x64-setup.exe` de la [última versión](https://github.com/ZaperMaster/ForensiX-Hash/releases/latest) y ábrelo. Se instala
 para tu usuario **sin pedir administrador**, con acceso en el menú Inicio y en el escritorio, y se desinstala desde
@@ -90,8 +91,16 @@ Un asistente de cuatro pasos y el proceso:
 - **Archivo**: hashes, tamaño y marcas de tiempo (creado, modificado, último acceso). Avisa si cambia mientras se lee.
 - **Carpeta**: hash de cada archivo y de la carpeta entera ([cómo se calcula](#hash-de-una-carpeta)), sin
   seguir enlaces. Anota los archivos que no se pueden leer y, al verificar, los **añadidos, eliminados y modificados**.
-- **Disco**: el disco físico entero (`\\.\PhysicalDriveN`), un volumen (`\\.\D:`) o una imagen, sector a sector y en
-  **solo lectura**. Los sectores ilegibles se leen como ceros y se anotan, como en las herramientas de adquisición.
+- **Disco**: el disco físico entero (`\\.\PhysicalDriveN`), un volumen (`\\.\D:`) o una imagen `.dd`/`.raw`/`.iso`, sector a
+  sector y en **solo lectura**. Indica si el disco está **protegido contra escritura** y avisa si es el disco del sistema
+  (Windows escribe en él mientras se lee). Los sectores ilegibles se leen como ceros y se anotan, como en las
+  herramientas de adquisición.
+- **Imagen E01** (EnCase): hashea el contenido del disco, no los archivos `.E01`, y lo compara con los hashes que la propia
+  imagen lleva guardados.
+
+**Imagen forense**
+- Crea una copia `.dd` del disco **durante la primera lectura**, con exactamente los datos que se hashean, y después la
+  lee para comprobar que da los mismos hashes. Comprueba antes el espacio libre y que no se guarda en el disco de origen.
 
 **Hashes verificados**
 - Todos los algoritmos se calculan **a la vez en una sola lectura**, en paralelo.
@@ -101,11 +110,16 @@ Un asistente de cuatro pasos y el proceso:
 - Resultado, datos del caso, evidencia, hashes, cronología (cálculo y cada verificación, con quién, cuándo y en qué
   equipo), cadena de custodia, sello del registro y espacio para **firmas**. En español o inglés.
 - Se crea solo al terminar; desde el registro se abre, se muestra en la carpeta o se crea otra copia.
+- **Lleva dentro el registro firmado**: se importa en otro equipo para verificar allí la evidencia. Si alguien lo ha
+  modificado, no se importa.
 
-**Integridad y cadena de custodia**
-- Cada registro lleva un **sello** (SHA-256 del registro): si alguien lo edita, la app lo marca como **MODIFICADO**.
-- **Cadena de custodia**: cada operación (hash creado, verificado, PDF creado) incluye el hash del evento anterior; si
-  se borra o edita uno, la cadena se rompe y se ve en qué punto.
+**Firma, sello de tiempo y custodia**
+- Cada registro lleva un **sello** (SHA-256) y una **firma digital Ed25519** con una clave propia del usuario, protegida
+  por Windows (DPAPI). La huella de la clave sale en el informe; si otra persona verifica después, sigue constando quién lo creó.
+- **Sello de tiempo RFC 3161** de una autoridad externa (DigiCert, con FreeTSA como alternativa): certifica la fecha sin
+  depender del reloj del equipo. Solo se envía un hash, nunca datos de la evidencia, y se puede desactivar.
+- **Cadena de custodia**: cada operación incluye el hash del evento anterior y un ancla guarda el último, así que se
+  detecta tanto editar o borrar un evento como recortar los últimos.
 
 **Ajustes**
 - **Tema** claro u oscuro (la primera vez, el de Windows) e **idioma** español o inglés.
@@ -127,8 +141,10 @@ Comparten el mismo motor (`forensix_hash/`):
 python -m forensix_hash file  informe.docx --examiner "Ana Pérez" --case 2026-0001 --pdf C:\Informes
 python -m forensix_hash dir   C:\Evidencias\EV-02 --examiner "Ana Pérez" --pdf C:\Informes --out ev02.sha256
 python -m forensix_hash disks
-python -m forensix_hash disk  \\.\PhysicalDrive1 --examiner "Ana Pérez" --evidence EV-01 --pdf C:\Informes
+python -m forensix_hash disk  \\.\PhysicalDrive1 --examiner "Ana Pérez" --evidence EV-01 --pdf D:\Caso --image D:\Caso --timestamp
+python -m forensix_hash disk  imagen.E01 --examiner "Ana Pérez" --pdf C:\Informes
 python -m forensix_hash verify <id-del-registro> --examiner "Luis Gómez"
+python -m forensix_hash import informe.pdf
 python -m forensix_hash custody
 ```
 
@@ -154,8 +170,20 @@ sha256sum ../manifiesto.sha256                    # = hash SHA-256 de la carpeta
 - **Registros y custodia**: `%LOCALAPPDATA%\ForensiX Hash\` (Windows) o `~/.local/share/forensix-hash/` (Linux), con
   `records/` (un JSON sellado por evidencia) y `custody.jsonl`. Se puede cambiar con `FORENSIX_HASH_HOME`.
 
-Las evidencias, los registros y los informes no salen del equipo. La única conexión es la consulta a GitHub para
-buscar actualizaciones, que se puede desactivar en **Ajustes**.
+Las evidencias, los registros y los informes no salen del equipo. Solo hay dos conexiones, y las dos se pueden
+desactivar en **Ajustes**: buscar actualizaciones en GitHub y pedir el sello de tiempo, que envía únicamente un hash.
+
+## Cómo se ha comprobado
+
+Además de las pruebas automáticas (Windows y Linux, Python 3.13 y 3.15):
+
+- **Hashes** contra `Get-FileHash` de Windows y una lectura independiente de un volumen en bruto.
+- **Disco real:** pendrive USB de 64 GB leído dos veces y carpeta de 8.693 archivos.
+- **E01 real:** imagen `nps-2010-emails` de [Digital Corpora](https://digitalcorpora.org/), creada en 2011 por otra
+  herramienta: el MD5 calculado y el del `.dd` creado coinciden con el guardado en la imagen.
+- **Sello de tiempo** real de DigiCert, leído con `openssl ts`.
+- **Actualización real:** una versión 0.9.9 se actualiza sola a la publicada, comprobando la firma.
+- **Sin administrador:** con un token restringido se rechaza leer el disco y todo lo demás funciona.
 
 ## Desarrollo
 
@@ -196,7 +224,9 @@ forensix_hash/            Motor (compartido por la app, la web y la línea de co
   devices.py              Discos y volúmenes del equipo, tamaño real y permisos
   engine.py               Cálculo + verificación automática y verificaciones posteriores
   record.py / store.py    Registro sellado y cadena de custodia
-  report.py / pdf.py      Informe (HTML → PDF con Edge) y destino seguro del PDF
+  report.py / pdf.py      Informe (HTML → PDF con Edge), registro adjunto y destino seguro
+  signing.py              Firma Ed25519 y sello de tiempo RFC 3161
+  paths.py                Solo rutas de unidades locales
   updater.py              Actualizaciones firmadas (Ed25519)
   jobs.py / progress.py   Operaciones en segundo plano con progreso y cancelación
   cli.py                  Línea de comandos
@@ -214,12 +244,15 @@ tests/                    Pruebas del motor, el PDF, las actualizaciones, la lí
 - La evidencia se abre **solo en modo lectura**, y el PDF no se puede guardar dentro de ella.
 - La API web solo escucha en `127.0.0.1`, comprueba que el `Host` sea local (contra *DNS rebinding*) y exige una
   cabecera propia en cada petición (una web ajena no puede llamarla).
+- Solo acepta rutas de **unidades locales**: abrir una ruta de red (`\\servidor\recurso`) entregaría el hash NTLM del
+  usuario a ese servidor.
 - Las **actualizaciones van firmadas**: nada se instala sin una firma Ed25519 válida.
 - El código se revisa con **CodeQL**, las dependencias con **Dependabot** y el repositorio tiene **escaneo de
   secretos** con protección al subir. Ver [SECURITY.md](SECURITY.md).
 
-> El sello y la cadena de custodia **detectan** cambios en los registros, pero no son una firma digital: quien tenga
-> acceso al equipo podría recalcularlos. Guarda el PDF firmado fuera del equipo, como en cualquier custodia.
+> **Límites honestos:** quien controle la cuenta del usuario podría firmar con su clave, aunque no conseguir un sello de
+> tiempo con fecha anterior. La firma identifica una clave, no a una persona: anota la huella en tu procedimiento. Y el
+> código no es un producto certificado: valídalo según tu laboratorio antes de usarlo en un caso real.
 
 ## Licencia
 

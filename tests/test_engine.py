@@ -251,6 +251,27 @@ def test_custody_without_anchor_from_older_version_is_valid(evidence, isolated_h
     assert store.check_custody()["ok"] is True
 
 
+def test_old_unsigned_record_without_event_does_not_break_the_chain(evidence, isolated_home):
+    record = engine.acquire("file", str(evidence / "a.txt"), None, CASE)
+    old = json.loads(json.dumps(record))
+    del old["signature"]
+    old["id"] = "a" * 32
+    store.write_record(old)
+    assert store.check_custody()["ok"] is True
+
+
+def test_interrupted_save_never_leaves_a_record_without_its_event(evidence, monkeypatch):
+    def killed(record):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(store, "save_record", killed)
+    with pytest.raises(KeyboardInterrupt):
+        engine.acquire("file", str(evidence / "a.txt"), None, CASE)
+    assert [e["action"] for e in store.read_custody()] == ["created", "verified"]
+    assert store.list_records() == []
+    assert store.check_custody()["ok"] is True
+
+
 def test_record_ids_are_validated():
     for bad in ("../custody", "x" * 32, ""):
         with pytest.raises(KeyError):

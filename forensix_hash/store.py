@@ -184,10 +184,23 @@ def log_event(action: str, record: dict, **details) -> dict:
 
 
 def _records_without_event(events: list[dict]) -> list[str]:
-    """Registros guardados cuyo evento de creación ya no está en la cadena."""
+    """Registros firmados cuyo evento de creación ya no está en la cadena.
+
+    Solo los firmados: los anteriores a la firma guardaban el registro antes que el
+    evento, así que uno interrumpido puede no tenerlo sin que nadie haya tocado nada.
+    """
 
     known = {e.get("record_id") for e in events if e.get("action") in ("created", "imported")}
-    return [path.stem for path in (home() / "records").glob("*.json") if path.stem not in known]
+    missing = []
+    for path in (home() / "records").glob("*.json"):
+        if path.stem in known:
+            continue
+        try:
+            if "signature" in json.loads(path.read_text(encoding="utf-8")):
+                missing.append(path.stem)
+        except (OSError, ValueError):
+            missing.append(path.stem)
+    return missing
 
 
 def check_custody(events: list[dict] | None = None) -> dict:

@@ -170,9 +170,9 @@
 
     <div class="stats">
       <div class="stat"><b>6</b><span data-es="algoritmos a la vez" data-en="algorithms at once">algoritmos a la vez</span></div>
-      <div class="stat"><b>2×</b><span data-es="lectura: cálculo y verificación" data-en="reads: hash and verify">lectura: cálculo y verificación</span></div>
+      <div class="stat"><b>E01</b><span data-es="y creación de imágenes .dd" data-en="and .dd image creation">y creación de imágenes .dd</span></div>
       <div class="stat"><b>PDF</b><span data-es="informe listo para firmar" data-en="report ready to sign">informe listo para firmar</span></div>
-      <div class="stat"><b>Ed25519</b><span data-es="actualizaciones firmadas" data-en="signed updates">actualizaciones firmadas</span></div>
+      <div class="stat"><b>RFC 3161</b><span data-es="firma y sello de tiempo" data-en="signature and timestamp">firma y sello de tiempo</span></div>
     </div>
   </div>
 
@@ -240,7 +240,8 @@
         <ul>
           <li data-es="Resultado, datos del caso y de la evidencia (modelo, nº de serie, conexión)." data-en="Result, case and evidence details (model, serial number, bus).">Resultado, datos del caso y de la evidencia (modelo, nº de serie, conexión).</li>
           <li data-es="Todos los hashes y la cronología: cálculo y cada verificación, con quién y cuándo." data-en="Every hash and the timeline: hashing and each verification, with who and when.">Todos los hashes y la cronología: cálculo y cada verificación, con quién y cuándo.</li>
-          <li data-es="Cadena de custodia, sello de integridad y espacio para firmas." data-en="Chain of custody, integrity seal and space for signatures.">Cadena de custodia, sello de integridad y espacio para firmas.</li>
+          <li data-es="Firma digital, sello de tiempo, cadena de custodia y espacio para firmas." data-en="Digital signature, timestamp, chain of custody and space for signatures.">Firma digital, sello de tiempo, cadena de custodia y espacio para firmas.</li>
+          <li data-es="Lleva dentro el registro firmado: se importa en otro equipo para verificar allí." data-en="It carries the signed record inside: import it on another computer to verify there.">Lleva dentro el registro firmado: se importa en otro equipo para verificar allí.</li>
         </ul>
       </div>
       <img class="shot" src="capturas/informe.png" alt="Informe PDF de un pendrive" loading="lazy">
@@ -269,14 +270,14 @@
       </div>
       <div class="grid">
         <div class="card"><div class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15h4"/></svg></div>
-          <h3 data-es="Discos completos" data-en="Whole disks">Discos completos</h3>
-          <p data-es="Disco físico, volúmenes e imágenes .dd/.raw/.iso, sector a sector y en solo lectura." data-en="Physical disk, volumes and .dd/.raw/.iso images, sector by sector and read-only.">Disco físico, volúmenes e imágenes .dd/.raw/.iso, sector a sector y en solo lectura.</p></div>
+          <h3 data-es="Imagen forense y E01" data-en="Forensic image and E01">Imagen forense y E01</h3>
+          <p data-es="Crea la imagen .dd mientras hashea el disco y lee imágenes E01, comparándolas con sus hashes guardados." data-en="Creates the .dd image while hashing the disk and reads E01 images, comparing them with their stored hashes.">Crea la imagen .dd mientras hashea el disco y lee imágenes E01, comparándolas con sus hashes guardados.</p></div>
         <div class="card"><div class="icon"><svg viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></svg></div>
           <h3 data-es="Carpetas enteras" data-en="Whole folders">Carpetas enteras</h3>
           <p data-es="Hash de cada archivo y de la carpeta (su manifiesto), comprobable con sha256sum." data-en="Hash of each file and of the folder (its manifest), checkable with sha256sum.">Hash de cada archivo y de la carpeta (su manifiesto), comprobable con sha256sum.</p></div>
         <div class="card"><div class="icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
-          <h3 data-es="Seis algoritmos" data-en="Six algorithms">Seis algoritmos</h3>
-          <p data-es="Calculados a la vez en una sola lectura, en paralelo." data-en="Calculated at once in a single read, in parallel.">Calculados a la vez en una sola lectura, en paralelo.</p></div>
+          <h3 data-es="Firma y sello de tiempo" data-en="Signature and timestamp">Firma y sello de tiempo</h3>
+          <p data-es="Firma Ed25519 y sello RFC 3161 de una autoridad externa: la fecha no depende del reloj del equipo." data-en="Ed25519 signature and RFC 3161 timestamp from an external authority: the date does not depend on the computer clock.">Firma Ed25519 y sello RFC 3161 de una autoridad externa: la fecha no depende del reloj del equipo.</p></div>
         <div class="card"><div class="icon"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg></div>
           <h3 data-es="Nunca toca la evidencia" data-en="Never touches the evidence">Nunca toca la evidencia</h3>
           <p data-es="Solo lectura, solo unidades locales, y el informe nunca se guarda dentro de la evidencia." data-en="Read-only, local drives only, and the report is never saved inside the evidence.">Solo lectura, solo unidades locales, y el informe nunca se guarda dentro de la evidencia.</p></div>
@@ -336,8 +337,8 @@ python -m forensix_hash verify &lt;id&gt; --examiner "Luis Gómez"</pre>
         <p data-es="Windows solo permite leer un disco entero a un administrador. La app avisa y se puede reiniciar como administrador con un clic. Para archivos, carpetas e imágenes no hace falta."
            data-en="Windows only lets an administrator read a whole disk. The app warns you and can restart as administrator with one click. Files, folders and images don't need it.">Windows solo permite leer un disco entero a un administrador. La app avisa y se puede reiniciar como administrador con un clic. Para archivos, carpetas e imágenes no hace falta.</p></details>
       <details><summary data-es="¿Envía algo a Internet?" data-en="Does it send anything to the Internet?">¿Envía algo a Internet?</summary>
-        <p data-es="No. Evidencias, registros e informes se quedan en tu equipo. Solo consulta GitHub para buscar actualizaciones, y se puede desactivar en Ajustes."
-           data-en="No. Evidence, records and reports stay on your computer. It only checks GitHub for updates, and that can be turned off in Settings.">No. Evidencias, registros e informes se quedan en tu equipo. Solo consulta GitHub para buscar actualizaciones, y se puede desactivar en Ajustes.</p></details>
+        <p data-es="No. Evidencias, registros e informes se quedan en tu equipo. Solo consulta GitHub para buscar actualizaciones y pide el sello de tiempo enviando únicamente un hash; las dos cosas se desactivan en Ajustes."
+           data-en="No. Evidence, records and reports stay on your computer. It only checks GitHub for updates and requests the timestamp by sending just a hash; both can be turned off in Settings.">No. Evidencias, registros e informes se quedan en tu equipo. Solo consulta GitHub para buscar actualizaciones y pide el sello de tiempo enviando únicamente un hash; las dos cosas se desactivan en Ajustes.</p></details>
       <details><summary data-es="¿Cómo compruebo que la descarga es auténtica?" data-en="How do I check the download is authentic?">¿Cómo compruebo que la descarga es auténtica?</summary>
         <p data-es="Cada versión publica SHA256SUMS.txt firmado con los hashes del instalador y del .exe. En PowerShell: Get-FileHash .\ForensiX-Hash_1.0.0_x64-setup.exe -Algorithm SHA256 y compara el valor."
            data-en="Each release publishes a signed SHA256SUMS.txt with the hashes of the installer and the .exe. In PowerShell: Get-FileHash .\ForensiX-Hash_1.0.0_x64-setup.exe -Algorithm SHA256 and compare the value.">Cada versión publica SHA256SUMS.txt firmado con los hashes del instalador y del .exe. En PowerShell: Get-FileHash .\ForensiX-Hash_1.0.0_x64-setup.exe -Algorithm SHA256 y compara el valor.</p></details>

@@ -14,7 +14,11 @@ Primera versión estable.
 - **Verificación automática** con una segunda lectura y verificaciones posteriores (también de una copia en otra
   ruta), con archivos añadidos, eliminados y modificados en las carpetas.
 - **Informe PDF** como comprobante en la carpeta elegida (nunca dentro de la evidencia), en español o inglés.
-- **Registros sellados** y **cadena de custodia** encadenada por hashes.
+- **Imagen forense `.dd`** creada durante la lectura y comprobada después, y lectura de **imágenes E01**.
+- **Firma digital Ed25519** y **sello de tiempo RFC 3161** de una autoridad externa.
+- El PDF lleva adjunto el registro firmado: se importa en otro equipo para verificar allí.
+- **Registros sellados** y **cadena de custodia** encadenada por hashes, que detecta también eventos recortados.
+- Protección contra escritura en el informe, aviso en el disco del sistema y solo rutas de unidades locales.
 - **Ajustes**: tema claro u oscuro (la primera vez, el de Windows); idioma; **actualizaciones automáticas firmadas** (Ed25519).
 - **Instalador** para Windows (`ForensiX-Hash_1.0.0_x64-setup.exe`): sin pedir administrador, accesos directos y
   desinstalador que conserva los registros. También `.exe` portable.

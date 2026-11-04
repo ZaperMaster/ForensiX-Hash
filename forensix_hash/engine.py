@@ -200,10 +200,11 @@ def acquire(kind: str, target: str, algorithms=None, case: dict | None = None,
         raise
 
     if save:
-        store.save_record(record)
+        # Primero la custodia: si la app se cierra en medio, no queda un registro sin su evento.
         store.log_event("created", record, hashes=record["hashes"])
         store.log_event("verified", record, result=record["verifications"][-1]["result"],
                         automatic=True)
+        store.save_record(record)
     progress.start_phase("done", 0)
     return record
 
@@ -251,9 +252,9 @@ def verify(record: dict, examiner: str = "", target: str | None = None,
 
     record.setdefault("verifications", []).append(entry)
     if save:
-        store.save_record(record)
         store.log_event("verified", record, examiner=examiner, result=entry["result"],
                         automatic=automatic, checked_target=checked)
+        store.save_record(record)
     return entry
 
 
