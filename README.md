@@ -178,7 +178,8 @@ desactivar en **Ajustes**: buscar actualizaciones en GitHub y pedir el sello de 
 Además de las pruebas automáticas (Windows y Linux, Python 3.13 y 3.15):
 
 - **Hashes** contra `Get-FileHash` de Windows y una lectura independiente de un volumen en bruto.
-- **Disco real:** pendrive USB de 64 GB leído dos veces y carpeta de 8.693 archivos.
+- **Disco real:** pendrive USB de 64 GB (61.530.439.680 bytes) con MD5, SHA-1 y SHA-256 idénticos a los de `dd` con
+  `md5sum`, `sha1sum` y `sha256sum` de GNU coreutils, leyendo a la vez, y carpeta de 8.693 archivos.
 - **E01 real:** imagen `nps-2010-emails` de [Digital Corpora](https://digitalcorpora.org/), creada en 2011 por otra
   herramienta: el MD5 calculado y el del `.dd` creado coinciden con el guardado en la imagen.
 - **Sello de tiempo** real de DigiCert, leído con `openssl ts`.
