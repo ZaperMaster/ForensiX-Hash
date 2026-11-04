@@ -15,6 +15,8 @@ import json
 import os
 import subprocess
 import sys
+import threading
+import time
 import urllib.request
 from pathlib import Path
 
@@ -137,9 +139,20 @@ def install(info: dict) -> None:
 def cleanup() -> None:
     """Borra el .exe anterior que deja una actualización (al arrancar la versión nueva)."""
 
-    if getattr(sys, "frozen", False):
-        for leftover in (Path(sys.executable).with_suffix(".exe.old"), Path(sys.executable + ".new")):
-            try:
-                leftover.unlink(missing_ok=True)
-            except OSError:
-                pass
+    if not getattr(sys, "frozen", False):
+        return
+    leftovers = [Path(sys.executable).with_suffix(".exe.old"), Path(sys.executable + ".new")]
+
+    def remove() -> None:
+        # La versión anterior puede tardar unos segundos en cerrarse y soltar su .exe.
+        for _ in range(30):
+            for leftover in leftovers:
+                try:
+                    leftover.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            if not any(leftover.exists() for leftover in leftovers):
+                return
+            time.sleep(1)
+
+    threading.Thread(target=remove, daemon=True, name="limpiar-actualizacion").start()

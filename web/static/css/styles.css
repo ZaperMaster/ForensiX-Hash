@@ -272,6 +272,7 @@ label em { color: var(--bad); font-style: normal; }
 .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--muted); }
 .tag.system { background: var(--warn-soft); color: var(--warn); }
 .tag.usb { background: var(--accent-soft); color: var(--accent); }
+.tag.protected { background: var(--ok-soft); color: var(--ok); }
 .image-row { margin-top: 4px; }
 
 /* --- Progreso --- */
@@ -344,7 +345,12 @@ td a { color: var(--accent); text-decoration: none; }
 table.files td:nth-child(2) { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
 
 /* --- Registros --- */
-#historySearch { max-width: 380px; }
+.history-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+#historySearch { width: 320px; }
+.import-button { flex-direction: row; cursor: pointer; padding: 9px 14px; border: 1px solid var(--border-strong); border-radius: 10px; color: var(--text); white-space: nowrap; }
+.import-button:hover { background: var(--surface-2); }
+.image-option { margin-top: 16px; }
+#recordTrust { margin-top: 12px; }
 .history { display: flex; flex-direction: column; gap: 10px; }
 .history-item {
   display: grid; grid-template-columns: 44px 1fr auto; gap: 14px; align-items: center; width: 100%;

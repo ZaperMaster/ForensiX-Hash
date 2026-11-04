@@ -6,22 +6,24 @@ puede verificar de nuevo cuando se quiera (por ejemplo, antes de un juicio), y
 cada verificación queda anotada con quién la hizo y cuándo.
 """
 
+import shutil
 import uuid
 from pathlib import Path
 from threading import Event
 from time import monotonic
 
-from . import devices, paths, store
+from . import devices, paths, pdf, report, signing, store
 from .hasher import Cancelled, MultiHasher, normalize_algorithms
 from .progress import Progress
 from .record import KINDS, clean_case, environment, now
 from .sources import describe_file, hash_device, hash_directory, hash_file, scan_directory
 
 FORMAT = "forensix-hash/1"
+FAT_FILE_LIMIT = 4 * 1024 ** 3 - 1
 
 
 def _measure(kind: str, target: str, algorithms, progress: Progress, cancel: Event | None,
-             phase: str) -> dict:
+             phase: str, copy_to=None) -> dict:
     """Lee la evidencia una vez y devuelve hashes, tamaño y detalles."""
 
     with MultiHasher(algorithms) as hasher:
@@ -36,7 +38,7 @@ def _measure(kind: str, target: str, algorithms, progress: Progress, cancel: Eve
             progress.start_phase("scanning", 0)
             listing = scan_directory(target)
             return hash_directory(target, hasher, progress, cancel, phase=phase, listing=listing)
-        return hash_device(target, hasher, progress, cancel, phase=phase)
+        return hash_device(target, hasher, progress, cancel, phase=phase, copy_to=copy_to)
 
 
 def _resolve_target(kind: str, target: str) -> str:
@@ -85,35 +87,92 @@ def _details(kind: str, measured: dict) -> dict:
     for key in ("sector_size", "bad_sectors", "changed_while_reading"):
         if key in measured:
             details[key] = measured[key]
+    if "ewf_stored" in measured:
+        stored = measured["ewf_stored"]
+        common = [a for a in stored if a in measured["hashes"]]
+        details["ewf"] = {"stored": stored,
+                          "match": all(stored[a] == measured["hashes"][a] for a in common) if common else None}
     return details
+
+
+def _fingerprint() -> str:
+    """Huella de quien actúa. Va dentro del contenido sellado: si otro equipo verifica y
+    vuelve a firmar el registro, sigue constando la clave que lo creó."""
+
+    return signing.identity(store.home())["fingerprint"]
 
 
 def _size(kind: str, measured: dict) -> int:
     return measured["totals"]["bytes"] if kind == "directory" else measured["size"]
 
 
+def check_image_destination(kind: str, target: str, folder) -> Path:
+    """Comprueba que la imagen cabe en la carpeta y no va dentro de la evidencia."""
+
+    if kind != "disk":
+        raise ValueError("Solo se puede crear una imagen forense de un disco.")
+    resolved = pdf.check_destination(kind, target, folder)
+    resolved.mkdir(parents=True, exist_ok=True)
+    size = devices.device_size(target)[0]
+    if shutil.disk_usage(resolved).free < size:
+        raise ValueError("No hay espacio suficiente en esa carpeta para la imagen.")
+    if devices.filesystem_of(resolved).upper().startswith("FAT") and size > FAT_FILE_LIMIT:
+        raise ValueError("Esa unidad es FAT32 y no admite archivos de más de 4 GB: elige otra para la imagen.")
+    return resolved
+
+
+def _write_image(kind, target, algorithms, progress, cancel, partial: Path) -> dict:
+    """Primera lectura: hashes e imagen a la vez, con los mismos datos."""
+
+    try:
+        with open(partial, "wb") as image:
+            return _measure(kind, target, algorithms, progress, cancel, "hashing", copy_to=image)
+    except BaseException:
+        partial.unlink(missing_ok=True)
+        raise
+
+
+def _verify_image(record: dict, progress: Progress, cancel: Event | None) -> None:
+    """Lee la imagen creada y comprueba que da los mismos hashes que la evidencia."""
+
+    image = record["image"]
+    measured = _measure("disk", image["path"], record["algorithms"], progress, cancel, "verifying_image")
+    same = measured["hashes"] == record["hashes"] and measured["size"] == record["size"]
+    image.update(hashes=measured["hashes"], result="verified" if same else "mismatch", verified=now())
+
+
 def acquire(kind: str, target: str, algorithms=None, case: dict | None = None,
             progress: Progress | None = None, cancel: Event | None = None,
-            save: bool = True) -> dict:
-    """Calcula los hashes, los verifica con una segunda lectura y guarda el registro."""
+            save: bool = True, image_folder=None) -> dict:
+    """Calcula los hashes, los verifica con una segunda lectura y guarda el registro.
+
+    Con `image_folder` crea además la imagen forense .dd durante esa primera lectura.
+    """
 
     progress = progress or Progress()
     algorithms = normalize_algorithms(algorithms)
     case = clean_case(case)
     target = _resolve_target(kind, target)
     source = _source_info(kind, target)
+    record_id = uuid.uuid4().hex
 
     started, clock = now(), monotonic()
-    measured = _measure(kind, target, algorithms, progress, cancel, "hashing")
+    if image_folder:
+        folder = check_image_destination(kind, target, image_folder)
+        partial = folder / f"{record_id}.dd.partial"
+        measured = _write_image(kind, target, algorithms, progress, cancel, partial)
+    else:
+        partial = None
+        measured = _measure(kind, target, algorithms, progress, cancel, "hashing")
     record = {
         "format": FORMAT,
-        "id": uuid.uuid4().hex,
+        "id": record_id,
         "kind": kind,
         "target": target,
         "label": _label(kind, source, target),
         "algorithms": list(algorithms),
         "case": case,
-        "environment": environment(),
+        "environment": {**environment(), "fingerprint": _fingerprint()},
         "source": source,
         "created": {"started": started, "finished": now(), "duration": round(monotonic() - clock, 2)},
         "hashes": measured["hashes"],
@@ -122,8 +181,23 @@ def acquire(kind: str, target: str, algorithms=None, case: dict | None = None,
         "verifications": [],
     }
 
-    verify(record, examiner=case["examiner"], progress=progress, cancel=cancel,
-           automatic=True, save=False)
+    if source.get("system"):
+        record["details"]["live_system"] = True  # Windows escribe en él mientras se lee
+
+    image_path = None
+    if partial:
+        image_path = partial.with_name(report.filename(record, "dd"))
+        partial.replace(image_path)
+        record["image"] = {"path": str(image_path), "format": "raw (dd)", "size": image_path.stat().st_size}
+    try:
+        verify(record, examiner=case["examiner"], progress=progress, cancel=cancel,
+               automatic=True, save=False)
+        if image_path:
+            _verify_image(record, progress, cancel)
+    except Cancelled:
+        if image_path:
+            image_path.unlink(missing_ok=True)
+        raise
 
     if save:
         store.save_record(record)
@@ -155,6 +229,7 @@ def verify(record: dict, examiner: str = "", target: str | None = None,
         "notes": (notes or "").strip()[:2000],
         "target": checked,
         "host": environment()["host"],
+        "fingerprint": _fingerprint(),
         "started": started,
     }
     try:

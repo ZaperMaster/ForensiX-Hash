@@ -3,7 +3,9 @@
 En Windows los discos se leen como \\\\.\\PhysicalDriveN (disco entero) o \\\\.\\X:
 (un volumen); hace falta ejecutar como administrador. En Linux, /dev/sdX.
 También se aceptan imágenes de disco (.dd, .raw, .img, .iso...), que son
-archivos normales y no necesitan permisos especiales.
+archivos normales y no necesitan permisos especiales, e imágenes E01 (EnCase): de
+estas se hashea el contenido del disco, no los archivos .E01, y se compara con los
+hashes que la propia imagen lleva guardados.
 """
 
 import ctypes
@@ -34,11 +36,75 @@ def is_raw_device(path: str) -> bool:
     return path.startswith("/dev/")
 
 
+def is_ewf(path: str) -> bool:
+    return str(path).lower().endswith(".e01")
+
+
+class EwfImage:
+    """Imagen E01 (uno o varios segmentos) leída como si fuera el disco original."""
+
+    HEADERS = {"case_number": "case_number", "evidence_number": "evidence_number", "examiner": "examiner_name",
+               "description": "description", "notes": "notes", "acquired": "acquiry_date",
+               "software": "acquiry_software", "model": "model", "serial": "serial_number"}
+
+    def __init__(self, path: str):
+        try:
+            import pyewf
+        except ImportError as error:
+            raise ValueError("Falta la librería libewf para leer imágenes E01.") from error
+        self._handle = pyewf.handle()
+        try:
+            self.segments = pyewf.glob(str(Path(path).resolve()))
+            self._handle.open(self.segments)
+        except OSError as error:
+            raise ValueError("No se pudo abrir la imagen E01: puede estar dañada o incompleta.") from error
+
+    @property
+    def size(self) -> int:
+        return self._handle.get_media_size()
+
+    @property
+    def sector(self) -> int:
+        return self._handle.get_bytes_per_sector() or DEFAULT_SECTOR
+
+    def seek(self, offset: int) -> None:
+        self._handle.seek(offset, os.SEEK_SET)
+
+    def read(self, size: int) -> bytes:
+        return self._handle.read(size)
+
+    def stored_hashes(self) -> dict[str, str]:
+        """Hashes que guardó la herramienta que creó la imagen."""
+
+        stored = {}
+        for algorithm, name in (("md5", "MD5"), ("sha1", "SHA1"), ("sha256", "SHA256")):
+            value = self._handle.get_hash_value(name)
+            if value:
+                stored[algorithm] = value.lower()
+        return stored
+
+    def headers(self) -> dict[str, str]:
+        values = {key: self._handle.get_header_value(name) for key, name in self.HEADERS.items()}
+        return {key: value for key, value in values.items() if value}
+
+    def close(self) -> None:
+        self._handle.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+
 # --- Tamaño y apertura ----------------------------------------------------------
 
 def device_size(path: str) -> tuple[int, int]:
     """(tamaño en bytes, tamaño de sector) de un disco, volumen o imagen."""
 
+    if is_ewf(path):
+        with EwfImage(path) as image:
+            return image.size, image.sector
     if not is_raw_device(path):
         return Path(path).stat().st_size, DEFAULT_SECTOR
     if os.name == "nt":
@@ -49,6 +115,8 @@ def device_size(path: str) -> tuple[int, int]:
 def open_device(path: str):
     """Abre en solo lectura y sin búfer (las lecturas van directas al disco)."""
 
+    if is_ewf(path):
+        return EwfImage(path)
     try:
         return open(path, "rb", buffering=0)
     except PermissionError as error:
@@ -99,6 +167,59 @@ def _windows_device_size(path: str) -> tuple[int, int]:
         return length.value, sector
     finally:
         kernel32.CloseHandle(handle)
+
+
+def _windows_is_write_protected(path: str) -> bool | None:
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateFileW.restype = wintypes.HANDLE
+    kernel32.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
+                                     wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    kernel32.DeviceIoControl.argtypes = [wintypes.HANDLE, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD,
+                                         ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD),
+                                         ctypes.c_void_p]
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+
+    GENERIC_READ, FILE_SHARE_READ_WRITE, OPEN_EXISTING = 0x80000000, 0x3, 3
+    IOCTL_DISK_IS_WRITABLE, ERROR_WRITE_PROTECT = 0x00070024, 19
+    handle = kernel32.CreateFileW(path, GENERIC_READ, FILE_SHARE_READ_WRITE, None, OPEN_EXISTING, 0, None)
+    if handle in (None, wintypes.HANDLE(-1).value):
+        return None
+    try:
+        returned = wintypes.DWORD()
+        if kernel32.DeviceIoControl(handle, IOCTL_DISK_IS_WRITABLE, None, 0, None, 0, ctypes.byref(returned), None):
+            return False
+        return True if ctypes.get_last_error() == ERROR_WRITE_PROTECT else None
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def write_protected(path: str) -> bool | None:
+    """¿El disco rechaza escrituras (bloqueador por hardware, interruptor, atributo)? None si no se sabe.
+
+    Lo que responde es el propio disco: un bloqueador por hardware aparece como protegido.
+    """
+
+    if not is_raw_device(path):
+        return None
+    if os.name == "nt":
+        return _windows_is_write_protected(path)
+    try:
+        return Path(f"/sys/class/block/{Path(os.path.realpath(path)).name}/ro").read_text().strip() == "1"
+    except OSError:
+        return None
+
+
+def filesystem_of(folder: str | Path) -> str:
+    """Sistema de archivos de la unidad de una carpeta ('NTFS', 'FAT32', 'exFAT'...), o '' si no se sabe."""
+
+    if os.name != "nt":
+        return ""
+    root = Path(folder).anchor
+    name = ctypes.create_unicode_buffer(64)
+    ok = ctypes.windll.kernel32.GetVolumeInformationW(root, None, 0, None, None, None, name, 64)
+    return name.value if ok else ""
 
 
 def _linux_device_size(path: str) -> tuple[int, int]:
@@ -179,6 +300,7 @@ def _list_windows() -> list[dict]:
             "sector_size": disk.get("LogicalSectorSize") or DEFAULT_SECTOR,
             "system": bool(disk.get("IsBoot") or disk.get("IsSystem")),
             "read_only": bool(disk.get("IsReadOnly")),
+            "write_protected": _windows_is_write_protected(f"\\\\.\\PhysicalDrive{number}"),
             "volumes": vols,
         })
     return devices
@@ -218,17 +340,24 @@ def _list_linux() -> list[dict]:
 def describe_device(path: str) -> dict:
     """Datos del disco o volumen para el informe (modelo, número de serie, bus...)."""
 
+    if is_ewf(path):
+        with EwfImage(path) as image:
+            return {"kind": "ewf", "path": str(Path(path).resolve()), "name": Path(path).name, "size": image.size,
+                    "segments": len(image.segments), "ewf_headers": image.headers()}
     if not is_raw_device(path):
         info = Path(path).stat()
         return {"kind": "image", "path": str(Path(path).resolve()), "name": Path(path).name, "size": info.st_size}
 
+    protected = write_protected(path)
     for disk in list_devices():
         if disk["path"].lower() == path.lower():
-            return {"kind": "disk", **{k: v for k, v in disk.items() if k != "volumes"}, "volumes": disk["volumes"]}
+            return {"kind": "disk", **{k: v for k, v in disk.items() if k != "volumes"}, "volumes": disk["volumes"],
+                    "write_protected": protected}
         for volume in disk["volumes"]:
             if volume["path"].lower() == path.lower():
-                return {"kind": "volume", **volume, "disk": {k: disk[k] for k in ("path", "model", "serial", "bus", "size")}}
-    return {"kind": "disk", "path": path}
+                return {"kind": "volume", **volume, "system": disk["system"], "write_protected": protected,
+                        "disk": {k: disk[k] for k in ("path", "model", "serial", "bus", "size")}}
+    return {"kind": "disk", "path": path, "write_protected": protected}
 
 
 def known_device(path: str) -> str | None:

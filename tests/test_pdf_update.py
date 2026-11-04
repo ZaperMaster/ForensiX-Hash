@@ -10,6 +10,7 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi.testclient import TestClient
+from pypdf import PdfWriter
 
 from forensix_hash import engine, pdf, store, updater
 from web.server import app
@@ -21,14 +22,20 @@ HEADERS = {"X-ForensiX": "1"}
 
 @pytest.fixture
 def fake_pdf(monkeypatch):
-    """Sustituye Edge por una función que escribe un PDF mínimo con el HTML dentro."""
+    """Sustituye Edge por un PDF mínimo válido y guarda el último HTML impreso."""
+
+    printed = {}
 
     def html_to_pdf(html, target):
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(b"%PDF-1.7\n" + html.encode("utf-8"))
+        writer = PdfWriter()
+        writer.add_blank_page(200, 200)
+        writer.write(str(target))
+        printed["html"] = html
         return target
 
     monkeypatch.setattr(pdf, "html_to_pdf", html_to_pdf)
+    return printed
 
 
 # --- Destino del informe -----------------------------------------------------------------
@@ -77,7 +84,7 @@ def test_save_report_logs_custody(evidence, tmp_path, fake_pdf):
     record = engine.acquire("file", str(evidence / "a.txt"), None, CASE)
     path = pdf.save_report(record, tmp_path / "out")
     assert path.exists() and path.suffix == ".pdf" and path.read_bytes().startswith(b"%PDF")
-    assert "VERIFICADO" in path.read_text(encoding="utf-8", errors="ignore")
+    assert "VERIFICADO" in fake_pdf["html"]
     event = store.read_custody()[-1]
     assert event["action"] == "exported" and event["format"] == "pdf" and event["path"] == str(path)
 
@@ -101,7 +108,7 @@ def test_api_job_creates_pdf_in_folder(evidence, tmp_path, fake_pdf):
             break
         time.sleep(0.05)
     assert job["state"] == "done" and job["result"] == "verified", job
-    assert job["pdf"] and job["pdf"].startswith(str(out)) and "VERIFIED" in open(job["pdf"], encoding="utf-8", errors="ignore").read()
+    assert job["pdf"] and job["pdf"].startswith(str(out)) and "VERIFIED" in fake_pdf["html"]
 
     detail = client.get(f"/api/records/{job['record_id']}", headers=HEADERS).json()
     assert detail["reports"] == [{"path": job["pdf"], "exists": True}]
@@ -187,6 +194,10 @@ def test_install_replaces_running_exe(signed_release, tmp_path, monkeypatch):
     assert (tmp_path / "ForensiX-Hash.exe.old").read_bytes() == b"MZ version vieja"
     assert launched == [[str(current)]]
     updater.cleanup()
+    for _ in range(50):  # La limpieza va en segundo plano
+        if sorted(p.name for p in tmp_path.iterdir()) == ["ForensiX-Hash.exe"]:
+            break
+        time.sleep(0.05)
     assert sorted(p.name for p in tmp_path.iterdir()) == ["ForensiX-Hash.exe"]
 
 

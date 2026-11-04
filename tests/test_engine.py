@@ -205,7 +205,7 @@ def test_custody_chain(evidence, isolated_home):
     assert [e["action"] for e in events] == ["created", "verified", "verified"]
     assert events[-1]["examiner"] == "Segunda persona"
     assert events[-1]["record_seal"] == compute_seal(store.load_record(record["id"]))
-    assert store.check_custody() == {"ok": True, "events": 3, "broken_at": None}
+    assert store.check_custody() == {"ok": True, "events": 3, "broken_at": None, "reason": None}
 
     # Editar un evento rompe la cadena
     path = isolated_home / "custody.jsonl"
@@ -214,7 +214,7 @@ def test_custody_chain(evidence, isolated_home):
     edited["result"] = "mismatch"
     lines[1] = json.dumps(edited, ensure_ascii=False)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    assert store.check_custody() == {"ok": False, "events": 3, "broken_at": 2}
+    assert store.check_custody() == {"ok": False, "events": 3, "broken_at": 2, "reason": "edited"}
 
 
 def test_custody_detects_deleted_event(evidence, isolated_home):
@@ -224,6 +224,31 @@ def test_custody_detects_deleted_event(evidence, isolated_home):
     lines = path.read_text(encoding="utf-8").splitlines()
     path.write_text("\n".join(lines[:1] + lines[2:]) + "\n", encoding="utf-8")
     assert store.check_custody()["ok"] is False
+
+
+def test_custody_detects_deleted_last_events(evidence, isolated_home):
+    record = engine.acquire("file", str(evidence / "a.txt"), None, CASE)
+    engine.verify(record, examiner="Perito")
+    path = isolated_home / "custody.jsonl"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    path.write_text("\n".join(lines[:-1]) + "\n", encoding="utf-8")  # Quita solo el último
+    assert store.check_custody() == {"ok": False, "events": 2, "broken_at": 3, "reason": "truncated"}
+
+
+def test_custody_detects_truncation_even_without_the_anchor(evidence, isolated_home):
+    engine.acquire("file", str(evidence / "a.txt"), None, CASE)
+    engine.acquire("file", str(evidence / "vacio.dat"), None, CASE)
+    path = isolated_home / "custody.jsonl"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    path.write_text("\n".join(lines[:2]) + "\n", encoding="utf-8")  # Quita la segunda evidencia
+    (isolated_home / "custody.head.json").unlink()
+    assert store.check_custody()["reason"] == "truncated"
+
+
+def test_custody_without_anchor_from_older_version_is_valid(evidence, isolated_home):
+    engine.acquire("file", str(evidence / "a.txt"), None, CASE)
+    (isolated_home / "custody.head.json").unlink()
+    assert store.check_custody()["ok"] is True
 
 
 def test_record_ids_are_validated():

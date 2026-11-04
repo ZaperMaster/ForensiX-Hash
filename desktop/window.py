@@ -275,7 +275,7 @@ class DesktopApi:
 
     # --- Elegir evidencias y permisos ---
 
-    IMAGE_TYPES = ("Imágenes de disco (*.dd;*.raw;*.img;*.iso;*.bin;*.001)", "Todos los archivos (*.*)")
+    IMAGE_TYPES = ("Imágenes de disco (*.dd;*.raw;*.img;*.iso;*.bin;*.001;*.E01)", "Todos los archivos (*.*)")
 
     def pick(self, mode: str) -> str | None:
         """Diálogo nativo para elegir un archivo, una carpeta o una imagen de disco."""

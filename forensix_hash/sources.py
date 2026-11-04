@@ -200,12 +200,13 @@ def hash_directory(root, hasher: MultiHasher, progress: Progress | None = None,
 # --- Disco o imagen de disco --------------------------------------------------
 
 def hash_device(path: str, hasher: MultiHasher, progress: Progress | None = None,
-                cancel: Event | None = None, phase: str = "hashing") -> dict:
-    """Hash sector a sector de un disco físico, un volumen o una imagen (.dd, .raw, .iso…).
+                cancel: Event | None = None, phase: str = "hashing", copy_to=None) -> dict:
+    """Hash sector a sector de un disco físico, un volumen o una imagen (.dd, .raw, .iso, .E01…).
 
     Si un bloque no se puede leer se vuelve a intentar sector a sector; los
     sectores ilegibles se cuentan como ceros y se anotan, como hacen las
-    herramientas de adquisición forense.
+    herramientas de adquisición forense. Con `copy_to` (un archivo abierto) se
+    escribe a la vez la imagen forense, exactamente con los datos que se hashean.
     """
 
     size, sector = devices.device_size(path)
@@ -227,11 +228,16 @@ def hash_device(path: str, hasher: MultiHasher, progress: Progress | None = None
             except OSError:
                 chunk = _read_sector_by_sector(handle, offset, length, sector, bad_sectors)
             hasher.update(chunk)
+            if copy_to is not None:
+                copy_to.write(chunk)
             offset += length
             if progress:
                 progress.add_bytes(length)
+        stored = handle.stored_hashes() if hasattr(handle, "stored_hashes") else None
 
     result = {"size": size, "sector_size": sector, "hashes": hasher.digest()}
+    if stored is not None:
+        result["ewf_stored"] = stored
     if bad_sectors:
         result["bad_sectors"] = {"count": len(bad_sectors), "first": bad_sectors[:100]}
     if progress:

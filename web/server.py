@@ -5,7 +5,6 @@ API exige la cabecera X-ForensiX (una web ajena no puede enviarla sin permiso
 CORS) y un Host local (evita ataques de DNS rebinding).
 """
 
-import json
 import os
 import subprocess
 from pathlib import Path
@@ -15,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from forensix_hash import APP_NAME, REPO_URL, __version__, devices, paths, pdf, report, store, updater
+from forensix_hash import APP_NAME, REPO_URL, __version__, devices, paths, pdf, report, signing, store, updater
 from forensix_hash.hasher import ALGORITHMS, DEFAULT_ALGORITHMS
 from forensix_hash.jobs import JobManager, error_message
 from forensix_hash.record import CASE_FIELDS, seal_ok
@@ -73,6 +72,8 @@ class AcquireRequest(BaseModel):
     case: CaseData
     output: str | None = Field(None, max_length=4096)   # Carpeta del informe PDF
     lang: str = Field("es", pattern="^(es|en)$")
+    image: bool = False       # Crear además la imagen forense .dd en esa carpeta
+    timestamp: bool = False   # Pedir un sello de tiempo externo
 
 
 class VerifyRequest(BaseModel):
@@ -81,6 +82,7 @@ class VerifyRequest(BaseModel):
     notes: str = Field("", max_length=2000)
     output: str | None = Field(None, max_length=4096)
     lang: str = Field("es", pattern="^(es|en)$")
+    timestamp: bool = False
 
 
 class OpenRequest(BaseModel):
@@ -138,6 +140,7 @@ def info():
         "home": str(store.home()),
         "reports_folder": str(pdf.default_folder()),
         "pdf_available": pdf.find_browser() is not None,
+        "signing": signing.identity(store.home()),
     }
 
 
@@ -188,7 +191,7 @@ def browse(path: str = ""):
 def start_acquisition(request: AcquireRequest):
     try:
         job = jobs.acquire(request.kind, request.target, request.algorithms, request.case.model_dump(),
-                           request.output or None, request.lang)
+                           request.output or None, request.lang, request.image, request.timestamp)
     except (OSError, ValueError) as error:
         raise _bad_request(error) from error
     return job.snapshot()
@@ -223,7 +226,7 @@ def get_record(record_id: str):
     custody = store.record_custody(record_id)
     reports = [e["path"] for e in custody if e.get("format") == "pdf" and e.get("path")]
     return {"record": record, "summary": store.summary(record), "seal_ok": seal_ok(record),
-            "custody": custody, "reports": [{"path": p, "exists": Path(p).exists()} for p in reports]}
+            "signature": signing.signature_status(record), "custody": custody, "reports": [{"path": p, "exists": Path(p).exists()} for p in reports]}
 
 
 @app.post("/api/records/{record_id}/pdf")
@@ -277,7 +280,7 @@ def verify_record(record_id: str, request: VerifyRequest):
     _record(record_id)
     try:
         job = jobs.verify(record_id, request.examiner, request.target or None, request.notes,
-                          request.output or None, request.lang)
+                          request.output or None, request.lang, request.timestamp)
     except (OSError, ValueError) as error:
         raise _bad_request(error) from error
     return job.snapshot()
@@ -303,33 +306,18 @@ def export_record(record_id: str, request: ExportRequest):
 
 @app.post("/api/import")
 async def import_record(request: Request):
-    """Importa un informe JSON de ForensiX Hash (por ejemplo, de otro equipo) para verificarlo."""
+    """Importa un informe PDF (o JSON) de ForensiX Hash, por ejemplo de otro equipo, para verificarlo."""
 
     body = await request.body()
     if len(body) > 200 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="El informe es demasiado grande.")
     try:
-        record = json.loads(body)
-        required = ("id", "kind", "target", "algorithms", "hashes", "case", "created")
-        if not isinstance(record, dict) or record.get("format") != "forensix-hash/1" \
-                or any(key not in record for key in required):
-            raise ValueError
-        store.summary({**record, "verifications": record.get("verifications") or []})
-    except (ValueError, KeyError, TypeError, AttributeError):
-        raise HTTPException(status_code=400, detail="No es un informe JSON de ForensiX Hash.") from None
-
-    intact = seal_ok(record)
-    try:
-        existing = store.load_record(record["id"])
-    except KeyError:
-        existing = None
-    if existing is None:
-        if not intact:
-            raise HTTPException(status_code=422,
-                                detail="El informe ha sido modificado: su sello no coincide. No se importa.")
-        store.save_record(record)
-        store.log_event("imported", record)
-    return {"id": record["id"], "seal_ok": intact, "already_present": existing is not None}
+        record, existing = pdf.import_report(body)
+    except pdf.ReportRejected as error:
+        raise HTTPException(status_code=422, detail=str(error)) from None
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from None
+    return {"id": record["id"], "seal_ok": True, "already_present": existing}
 
 
 @app.get("/api/custody")

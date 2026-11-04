@@ -13,6 +13,7 @@ from html import escape
 from . import APP_NAME, REPO_URL, __version__
 from .hasher import ALGORITHMS
 from .record import seal_ok, status
+from .signing import signature_status
 from .sources import manifest_text
 
 TEXTS = {
@@ -50,10 +51,21 @@ TEXTS = {
         "os": "Sistema operativo", "admin": "Administrador", "yes": "Sí", "no": "No",
         "custody": "Cadena de custodia", "event": "Evento", "time": "Fecha y hora",
         "created": "Hash creado", "verified_event": "Verificado", "exported": "Informe exportado",
-        "imported": "Informe importado", "deleted": "Registro eliminado",
+        "imported": "Informe importado", "deleted": "Registro eliminado", "timestamped": "Sello de tiempo externo",
         "seal": "Sello del registro", "seal_ok": "Íntegro: el registro no se ha modificado desde que se creó.",
         "seal_bad": "MODIFICADO: el contenido del registro no coincide con su sello.",
-        "seal_note": "SHA-256 del registro en JSON canónico. Sirve para detectar cambios en el informe JSON.",
+        "seal_note": "SHA-256 del registro en JSON canónico. Sirve para detectar cualquier cambio en el registro.",
+        "signature": "Firma digital", "sig_valid": "Válida: firmado con esta clave y sin cambios desde entonces.",
+        "sig_invalid": "NO VÁLIDA: el registro no coincide con su firma.", "sig_missing": "Registro sin firma digital.",
+        "fingerprint": "Huella de la clave", "created_by_key": "Clave que creó el registro", "timestamp": "Sello de tiempo externo (RFC 3161)", "tsa": "Autoridad",
+        "ts_none": "Sin sello de tiempo externo.", "ts_old": "corresponde a un estado anterior del registro",
+        "embedded": "Este PDF lleva adjunto el registro firmado: se puede importar en otro equipo para verificar allí la evidencia.",
+        "image_title": "Imagen forense", "image_file": "Archivo", "image_format": "Formato", "image_check": "Comprobación",
+        "write_protected": "Protección contra escritura", "unknown": "No se pudo determinar",
+        "live_system": "Disco del sistema en uso: Windows escribe en él durante la lectura, así que sus hashes pueden no coincidir.",
+        "ewf_stored": "Hashes guardados en la imagen E01", "ewf_match": "Coinciden con los calculados",
+        "ewf_differ": "NO COINCIDEN con los calculados", "ewf_none": "Sin algoritmos en común para comparar",
+        "ewf_segments": "Segmentos E01", "ewf_software": "Creada con", "ewf": "Imagen E01",
         "manifest": "Manifiesto de archivos", "file_error": "error",
         "signatures": "Firmas", "sign_examiner": "Firma de quien realiza el hash", "sign_witness": "Firma del testigo / custodio",
         "footer": "Generado con {app} {version}",
@@ -93,10 +105,21 @@ TEXTS = {
         "os": "Operating system", "admin": "Administrator", "yes": "Yes", "no": "No",
         "custody": "Chain of custody", "event": "Event", "time": "Date and time",
         "created": "Hash created", "verified_event": "Verified", "exported": "Report exported",
-        "imported": "Report imported", "deleted": "Record deleted",
+        "imported": "Report imported", "deleted": "Record deleted", "timestamped": "External timestamp",
         "seal": "Record seal", "seal_ok": "Intact: the record has not been modified since it was created.",
         "seal_bad": "MODIFIED: the record content does not match its seal.",
-        "seal_note": "SHA-256 of the record as canonical JSON. Used to detect changes to the JSON report.",
+        "seal_note": "SHA-256 of the record as canonical JSON. Used to detect any change to the record.",
+        "signature": "Digital signature", "sig_valid": "Valid: signed with this key and unchanged since then.",
+        "sig_invalid": "NOT VALID: the record does not match its signature.", "sig_missing": "Record without a digital signature.",
+        "fingerprint": "Key fingerprint", "created_by_key": "Key that created the record", "timestamp": "External timestamp (RFC 3161)", "tsa": "Authority",
+        "ts_none": "No external timestamp.", "ts_old": "refers to an earlier state of the record",
+        "embedded": "This PDF has the signed record attached: it can be imported on another computer to verify the evidence there.",
+        "image_title": "Forensic image", "image_file": "File", "image_format": "Format", "image_check": "Check",
+        "write_protected": "Write protection", "unknown": "Could not be determined",
+        "live_system": "System disk in use: Windows writes to it during the read, so its hashes may not match.",
+        "ewf_stored": "Hashes stored in the E01 image", "ewf_match": "Match the calculated ones",
+        "ewf_differ": "DO NOT MATCH the calculated ones", "ewf_none": "No common algorithms to compare",
+        "ewf_segments": "E01 segments", "ewf_software": "Created with", "ewf": "E01 image",
         "manifest": "File manifest", "file_error": "error",
         "signatures": "Signatures", "sign_examiner": "Signature of the person performing the hash",
         "sign_witness": "Signature of the witness / custodian",
@@ -145,7 +168,7 @@ def _action(event: dict, t: dict) -> str:
         return text + (f" ({t['automatic']})" if event.get("automatic") else "")
     if action == "exported":
         return f"{t['exported']} ({event.get('format', '')})"
-    if action in ("imported", "deleted"):
+    if action in ("imported", "deleted", "timestamped"):
         return t[action]
     return str(action)
 
@@ -155,7 +178,7 @@ def evidence_rows(record: dict, t: dict, lang: str) -> list[tuple[str, str]]:
     kind = record["kind"]
     kind_label = t[kind]
     if kind == "disk":
-        kind_label = {"image": t["image"], "volume": t["volume"]}.get(source.get("kind"), t["disk"])
+        kind_label = {"image": t["image"], "volume": t["volume"], "ewf": t["ewf"]}.get(source.get("kind"), t["disk"])
     rows = [(t["kind"], kind_label), (t["path"], record["target"]), (t["size"], human_size(record.get("size"), lang))]
     for key in ("model", "serial", "bus", "partition_style", "filesystem", "label"):
         if source.get(key):
@@ -174,6 +197,18 @@ def evidence_rows(record: dict, t: dict, lang: str) -> list[tuple[str, str]]:
     if totals:
         rows += [(t["files"], str(totals["files"])), (t["hashed"], str(totals["hashed"])),
                  (t["errors"], str(totals["errors"])), (t["links"], str(totals["links"]))]
+    if "write_protected" in source:
+        protected = source["write_protected"]
+        rows.append((t["write_protected"], t["unknown"] if protected is None else t["yes"] if protected else t["no"]))
+    if source.get("segments"):
+        rows.append((t["ewf_segments"], str(source["segments"])))
+    if (source.get("ewf_headers") or {}).get("software"):
+        rows.append((t["ewf_software"], source["ewf_headers"]["software"]))
+    ewf = details.get("ewf")
+    if ewf:
+        verdict = t["ewf_none"] if ewf["match"] is None else t["ewf_match"] if ewf["match"] else t["ewf_differ"]
+        stored = " · ".join(f"{ALGORITHMS[a]} {v}" for a, v in ewf["stored"].items())
+        rows.append((t["ewf_stored"], f"{verdict}. {stored}" if stored else verdict))
     if details.get("bad_sectors"):
         rows.append((t["bad_sectors"], str(details["bad_sectors"]["count"])))
     if details.get("changed_while_reading"):
@@ -221,6 +256,36 @@ LOGO_SVG = (
     '<path d="M27 18l-4 28M41 18l-4 28M18 27h29M16 37h29" stroke="#fff" stroke-width="5" stroke-linecap="round"/>'
     '</svg>'
 )
+
+
+def trust_rows(record: dict, t: dict) -> list[tuple[str, str]]:
+    """Firma digital y sellos de tiempo, para el informe."""
+
+    state = signature_status(record)
+    rows = [(t["signature"], t[f"sig_{state}"])]
+    signature = record.get("signature") or {}
+    if signature:
+        rows.append((t["fingerprint"], signature.get("fingerprint", "")))
+    creator = (record.get("environment") or {}).get("fingerprint")
+    if creator and creator != signature.get("fingerprint"):
+        rows.append((t["created_by_key"], creator))
+    current = (record.get("seal") or {}).get("value")
+    stamps = record.get("timestamps") or []
+    for stamp in stamps:
+        note = "" if stamp.get("seal") == current else f" ({t['ts_old']})"
+        rows.append((t["timestamp"], f"{stamp.get('time')} · {t['tsa']}: {stamp.get('tsa')}{note}"))
+    if not stamps:
+        rows.append((t["timestamp"], t["ts_none"]))
+    return rows
+
+
+def image_rows(record: dict, t: dict, lang: str) -> list[tuple[str, str]]:
+    image = record.get("image") or {}
+    if not image:
+        return []
+    check = {"verified": t["verified"], "mismatch": t["mismatch"]}.get(image.get("result"), t["pending"])
+    return [(t["image_file"], image.get("path", "")), (t["image_format"], image.get("format", "")),
+            (t["size"], human_size(image.get("size"), lang)), (t["image_check"], f"{check} · {image.get('verified', '')}")]
 
 
 def _rows(rows) -> str:
@@ -322,8 +387,10 @@ def to_html(record: dict, custody: list[dict] | None = None, lang: str = "es",
 
 <h2>{escape(t['case'])}</h2><table>{case_rows}</table>
 <h2>{escape(t['evidence'])}</h2><table>{_rows(evidence_rows(record, t, lang))}</table>
+{f"<p class='bad'>{escape(t['live_system'])}</p>" if (record.get('details') or {}).get('live_system') else ''}
 <h2>{escape(t['hashes'])}</h2><table>{hashes_rows}</table>
 {f"<p class='note'>{escape(t['dir_hash_note'])}</p>" if record['kind'] == 'directory' else ''}
+{f"<h2>{escape(t['image_title'])}</h2><table>{_rows(image_rows(record, t, lang))}</table>" if record.get('image') else ''}
 <h2>{escape(t['timeline'])}</h2>
 <table><thead><tr><th></th><th>{escape(t['started'])}</th><th>{escape(t['finished'])}</th><th>{escape(t['duration'])}</th>
 <th>{escape(t['by'])}</th><th>{escape(t['result'])}</th></tr></thead><tbody>{''.join(timeline)}</tbody></table>
@@ -333,6 +400,8 @@ def to_html(record: dict, custody: list[dict] | None = None, lang: str = "es",
 <h2>{escape(t['seal'])}</h2>
 <p class="{'ok' if sealed else 'bad'}">{escape(t['seal_ok'] if sealed else t['seal_bad'])}</p>
 <p class="mono">SHA-256: {escape(seal_value)}</p><p class="note">{escape(t['seal_note'])}</p>
+<table>{_rows(trust_rows(record, t))}</table>
+<p class="note">{escape(t['embedded'])}</p>
 <h2>{escape(t['signatures'])}</h2>
 <div class="sign"><div>{escape(t['sign_examiner'])}<br>{escape(case.get('examiner', ''))}</div><div>{escape(t['sign_witness'])}</div></div>
 {manifest_html}
@@ -372,6 +441,9 @@ def to_text(record: dict, custody: list[dict] | None = None, lang: str = "es") -
     if custody:
         section(t["custody"], [(f"#{e.get('seq')} {e.get('time')}", f"{_action(e, t)} · {e.get('examiner', '')}")
                                for e in custody])
+    if record.get("image"):
+        section(t["image_title"], image_rows(record, t, lang))
+    section(t["signature"], trust_rows(record, t))
     lines.append(f"{t['seal']}: {(record.get('seal') or {}).get('value', '')} "
                  f"({'OK' if seal_ok(record) else t['seal_bad']})")
     return "\n".join(lines) + "\n"
@@ -436,5 +508,5 @@ def export(record: dict, fmt: str, custody: list[dict] | None = None, lang: str 
 def filename(record: dict, fmt: str) -> str:
     base = record["case"].get("evidence_number") or record["case"].get("case_number") or record["label"]
     safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in base)[:60].strip("_") or "evidencia"
-    extension = "pdf" if fmt == "pdf" else EXPORTS[fmt][1]
+    extension = fmt if fmt in ("pdf", "dd") else EXPORTS[fmt][1]
     return f"ForensiX-Hash_{safe}_{record['id'][:8]}.{extension}"

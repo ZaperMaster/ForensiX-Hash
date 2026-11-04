@@ -3,6 +3,9 @@ fastapi==0.161.1
 uvicorn==0.54.0
 # Firma de las actualizaciones automáticas (Ed25519)
 cryptography==50.0.2
+# Informe PDF con el registro adjunto e imágenes E01
+pypdf==6.21.4
+libewf-python==20260924
 # Tests
 pytest==9.1.1
 httpx2==2.16.0

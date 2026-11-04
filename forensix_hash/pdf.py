@@ -2,18 +2,36 @@
 
 Edge viene con Windows 10 y 11, así que el PDF se genera igual desde la app, la
 web o la línea de comandos, sin dependencias extra.
+
+El PDF lleva adjunto el registro firmado (JSON): así el mismo comprobante sirve
+para importarlo en otro equipo y verificar allí la evidencia.
 """
 
+import io
+import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from time import monotonic, sleep
 
-from . import devices, paths, report, store
+from pypdf import PdfReader, PdfWriter
+from pypdf.errors import PyPdfError
+
+from . import APP_NAME, devices, paths, report, store
+from .record import seal_ok
+from .signing import signature_status
 
 TIMEOUT = 120
+PDF_WAIT = 45
+ATTACHMENT = "forensix-registro.json"
+REQUIRED = ("id", "kind", "target", "algorithms", "hashes", "case", "created")
+
+
+class ReportRejected(ValueError):
+    """El informe se ha modificado: su sello o su firma no coinciden."""
 _CANDIDATES = [
     r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe",
     r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe",
@@ -44,7 +62,7 @@ def html_to_pdf(html: str, target: Path) -> Path:
         raise RuntimeError("No se encontró Microsoft Edge ni Chrome para crear el PDF.")
     target = Path(target)
     target.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="forensix-pdf-") as work:
+    with tempfile.TemporaryDirectory(prefix="forensix-pdf-", ignore_cleanup_errors=True) as work:
         source = Path(work) / "informe.html"
         source.write_text(html, encoding="utf-8")
         temporary = Path(work) / "informe.pdf"
@@ -58,10 +76,30 @@ def html_to_pdf(html: str, target: Path) -> Path:
             capture_output=True, timeout=TIMEOUT,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
-        if not temporary.exists() or temporary.stat().st_size == 0:
+        if not _wait_for_pdf(temporary):
             raise RuntimeError("No se pudo crear el PDF del informe.")
-        shutil.move(str(temporary), target)
+        shutil.copyfile(temporary, target)
     return target
+
+
+def _wait_for_pdf(path: Path, timeout: float = PDF_WAIT) -> bool:
+    """Espera a que el PDF esté completo.
+
+    msedge.exe puede delegar en otro proceso y terminar antes de que el archivo
+    exista, así que el fin del proceso no garantiza que el PDF esté escrito.
+    """
+
+    deadline = monotonic() + timeout
+    while monotonic() < deadline:
+        try:
+            with open(path, "rb") as handle:
+                handle.seek(-32, os.SEEK_END)
+                if b"%%EOF" in handle.read():
+                    return True
+        except OSError:
+            pass  # Aún no existe, o es demasiado corto
+        sleep(0.1)
+    return False
 
 
 def default_folder() -> Path:
@@ -99,5 +137,48 @@ def save_report(record: dict, folder: str | Path, lang: str = "es", suffix: str 
     target = Path(folder) / name
     html = report.to_html(record, store.record_custody(record["id"]), lang)
     html_to_pdf(html, target)
+    attach_record(target, record)
     store.log_event("exported", record, format="pdf", path=str(target))
     return target
+
+
+def attach_record(path: Path, record: dict) -> None:
+    """Adjunta el registro firmado al PDF."""
+
+    try:
+        writer = PdfWriter(clone_from=str(path))
+        writer.add_attachment(ATTACHMENT, report.to_json(record).encode("utf-8"))
+        writer.add_metadata({"/Title": f"{APP_NAME} · {record['label']}", "/Creator": APP_NAME})
+        writer.write(str(path))
+    except PyPdfError as error:
+        raise RuntimeError("No se pudo adjuntar el registro al PDF.") from error
+
+
+def read_report(data: bytes) -> dict:
+    """El registro de un informe PDF (o de su JSON). Comprueba el formato, el sello y la firma."""
+
+    try:
+        if data.startswith(b"%PDF"):
+            data = PdfReader(io.BytesIO(data)).attachments[ATTACHMENT][0]
+        record = json.loads(data)
+        if not isinstance(record, dict) or record.get("format") != "forensix-hash/1" \
+                or any(key not in record for key in REQUIRED):
+            raise ValueError
+        store.summary({**record, "verifications": record.get("verifications") or []})
+    except (PyPdfError, ValueError, KeyError, IndexError, TypeError, AttributeError, OSError):
+        raise ValueError("No es un informe de ForensiX Hash.") from None
+    if not seal_ok(record) or signature_status(record) == "invalid":
+        raise ReportRejected("El informe ha sido modificado: su sello o su firma no coinciden. No se importa.")
+    return record
+
+
+def import_report(data: bytes) -> tuple[dict, bool]:
+    """Guarda en este equipo el registro de un informe. Devuelve (registro, ya existía)."""
+
+    record = read_report(data)
+    try:
+        return store.load_record(record["id"]), True
+    except KeyError:
+        store.write_record(record)  # Sin volver a firmar: conserva la firma de quien lo creó
+        store.log_event("imported", record)
+        return record, False

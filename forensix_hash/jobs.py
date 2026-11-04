@@ -1,12 +1,11 @@
 """Operaciones en segundo plano con progreso y cancelación (para la web y la app)."""
 
+import subprocess
 import uuid
 from dataclasses import dataclass, field
 from threading import Event, Lock, Thread
 
-import subprocess
-
-from . import engine, pdf, store
+from . import engine, pdf, signing, store
 from .hasher import Cancelled
 from .progress import Progress
 
@@ -30,13 +29,27 @@ class Job:
     error: str | None = None
     pdf: str | None = None       # Informe PDF guardado
     pdf_error: str | None = None
+    timestamp_error: str | None = None
 
     def snapshot(self) -> dict:
         return {
             "id": self.id, "action": self.action, "title": self.title, "state": self.state,
             "record_id": self.record_id, "result": self.result, "error": self.error,
-            "pdf": self.pdf, "pdf_error": self.pdf_error, "progress": self.progress.snapshot(),
+            "pdf": self.pdf, "pdf_error": self.pdf_error, "timestamp_error": self.timestamp_error,
+            "progress": self.progress.snapshot(),
         }
+
+    def add_timestamp(self, record: dict) -> None:
+        """Sello de tiempo externo. Sin Internet el hash sigue siendo válido: solo se avisa."""
+
+        self.progress.start_phase("report", 0)
+        try:
+            entry = signing.timestamp_record(record)
+        except signing.TimestampError as error:
+            self.timestamp_error = str(error)
+            return
+        store.write_record(record)
+        store.log_event("timestamped", record, tsa=entry["tsa"], stamped=entry["time"])
 
     def save_pdf(self, record: dict, folder, lang: str, suffix: str = "") -> None:
         """El informe PDF es el comprobante: si falla, el hash sigue guardado y se avisa."""
@@ -77,7 +90,7 @@ class JobManager:
         return job
 
     def acquire(self, kind: str, target: str, algorithms, case: dict, output: str | None = None,
-                lang: str = "es") -> Job:
+                lang: str = "es", image: bool = False, timestamp: bool = False) -> Job:
         # Errores de datos (sin examinador, ruta inexistente, informe dentro de la evidencia...)
         # se devuelven al momento.
         from .record import clean_case
@@ -85,16 +98,23 @@ class JobManager:
         clean_case(case)
         resolved = engine._resolve_target(kind, target)
         folder = pdf.check_destination(kind, resolved, output) if output else None
+        if image:
+            if not folder:
+                raise ValueError("Elige dónde guardar el informe.")
+            engine.check_image_destination(kind, resolved, folder)
 
         def work(job: Job):
-            record = engine.acquire(kind, target, algorithms, case, job.progress, job.cancel)
+            record = engine.acquire(kind, target, algorithms, case, job.progress, job.cancel,
+                                    image_folder=folder if image else None)
+            if timestamp:
+                job.add_timestamp(record)
             job.save_pdf(record, folder, lang)
             return record, record["verifications"][-1]["result"]
 
         return self._start("acquire", target, work)
 
     def verify(self, record_id: str, examiner: str, target: str | None = None, notes: str = "",
-               output: str | None = None, lang: str = "es") -> Job:
+               output: str | None = None, lang: str = "es", timestamp: bool = False) -> Job:
         record = store.load_record(record_id)
         checked = engine._resolve_target(record["kind"], target) if target else record["target"]
         folder = pdf.check_destination(record, checked, output) if output else None
@@ -102,6 +122,8 @@ class JobManager:
         def work(job: Job):
             entry = engine.verify(record, examiner=examiner, target=target, progress=job.progress,
                                   cancel=job.cancel, notes=notes)
+            if timestamp:
+                job.add_timestamp(record)
             job.save_pdf(record, folder, lang, suffix=f"verificacion-{entry['number']}")
             return record, entry["result"]
 

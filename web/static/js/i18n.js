@@ -13,6 +13,13 @@ const I18N = (() => {
     "new.output": "Where should the PDF report be saved?",
     "new.output_hint": "When it finishes, the PDF report is created there as proof. It cannot be inside the evidence, because that would modify it.",
     "new.summary": "Summary",
+    "new.image": "Also create the forensic image (.dd) in this folder",
+    "new.image_hint": "It is copied during the first read, with the same data that is hashed, and then checked by reading it back. It needs as much free space as the disk.",
+    "disk.live": "This disk is in use by Windows, which writes to it while it is read: verification will most likely give MISMATCH. For a reliable result, analyse it from another computer with a write blocker.",
+    "history.import": "Import PDF report",
+    "settings.timestamp": "External timestamp",
+    "settings.timestamp_hint": "An external authority certifies the date of each record, without depending on the computer clock. Only a hash is sent, never evidence data.",
+    "settings.timestamp_on": "Request timestamp",
     "new.verify_note": "When it finishes it is verified automatically: the evidence is read a second time and the hashes must match.",
     "new.start": "Hash and verify",
     "settings.title": "Settings", "settings.lead": "Appearance, language and updates. Saved on this computer.",
@@ -29,7 +36,7 @@ const I18N = (() => {
     "kind.disk": "Disk", "kind.disk_hint": "Disk, USB drive, volume or image",
     "disk.need_admin": "Reading a whole disk requires running ForensiX Hash as administrator.",
     "disk.relaunch": "Restart as administrator", "disk.choose": "Choose the whole disk or one of its volumes:",
-    "disk.refresh": "Refresh", "disk.image_placeholder": "…or a disk image (.dd, .raw, .img, .iso)",
+    "disk.refresh": "Refresh", "disk.image_placeholder": "…or a disk image (.dd, .raw, .img, .iso, .E01)",
     "disk.readonly": "It is read in read-only mode, sector by sector. For real evidence use a write blocker.",
     "case.examiner": "Performed by", "case.examiner_ph": "Full name", "case.organization": "Organization / unit",
     "case.case_number": "Case number", "case.evidence_number": "Evidence number",
@@ -64,6 +71,14 @@ const I18N = (() => {
   const EXTRA = {
     es: {
       "err.output": "Elige dónde guardar el informe PDF.", "copy": "Copiar", "history.verification": "1 verificación",
+      "disk.protected": "protegido contra escritura", "sum.image": "Imagen forense", "sum.image_yes": "Sí, en la misma carpeta (.dd)",
+      "progress.image": "Comprobando la imagen forense…", "timestamp.failed": "No se pudo obtener el sello de tiempo externo: el registro queda sin él.",
+      "sig.title": "Firma digital", "sig.valid": "Válida", "sig.invalid": "NO VÁLIDA", "sig.missing": "Sin firma", "sig.fingerprint": "Huella de la clave", "sig.creator": "Clave que creó el registro",
+      "ts.title": "Sello de tiempo", "ts.none": "Sin sello de tiempo externo", "ts.old": "de un estado anterior", "img.title": "Imagen forense",
+      "ev.protected": "Protección contra escritura", "ev.unknown": "No se pudo determinar", "ev.yes": "Sí", "ev.no": "No",
+      "ev.ewf": "Hashes guardados en el E01", "ev.ewf_ok": "Coinciden", "ev.ewf_bad": "NO COINCIDEN", "ev.ewf_none": "Sin algoritmos en común",
+      "ev.live": "Disco del sistema en uso", "import.done": "Informe importado.", "import.present": "Ese registro ya estaba en este equipo.",
+      "custody.truncated_text": "Faltan los últimos eventos: alguien ha recortado el registro de custodia.", "act.timestamped": "Sello de tiempo externo",
       "sum.evidence": "Evidencia", "sum.algorithms": "Hash",
       "alg.md5": "Compatibilidad con herramientas antiguas", "alg.sha1": "Habitual en informes periciales",
       "alg.sha256": "Recomendado (estándar actual)", "alg.sha512": "Más largo, muy robusto",
@@ -80,6 +95,14 @@ const I18N = (() => {
     },
     en: {
       "err.output": "Choose where to save the PDF report.", "copy": "Copy", "history.verification": "1 verification",
+      "disk.protected": "write protected", "sum.image": "Forensic image", "sum.image_yes": "Yes, in the same folder (.dd)",
+      "progress.image": "Checking the forensic image…", "timestamp.failed": "The external timestamp could not be obtained: the record stays without it.",
+      "sig.title": "Digital signature", "sig.valid": "Valid", "sig.invalid": "NOT VALID", "sig.missing": "Not signed", "sig.fingerprint": "Key fingerprint", "sig.creator": "Key that created the record",
+      "ts.title": "Timestamp", "ts.none": "No external timestamp", "ts.old": "of an earlier state", "img.title": "Forensic image",
+      "ev.protected": "Write protection", "ev.unknown": "Could not be determined", "ev.yes": "Yes", "ev.no": "No",
+      "ev.ewf": "Hashes stored in the E01", "ev.ewf_ok": "Match", "ev.ewf_bad": "DO NOT MATCH", "ev.ewf_none": "No common algorithms",
+      "ev.live": "System disk in use", "import.done": "Report imported.", "import.present": "That record was already on this computer.",
+      "custody.truncated_text": "The last events are missing: someone has cut the custody log.", "act.timestamped": "External timestamp",
       "sum.evidence": "Evidence", "sum.algorithms": "Hash",
       "alg.md5": "Compatibility with older tools", "alg.sha1": "Common in forensic reports",
       "alg.sha256": "Recommended (current standard)", "alg.sha512": "Longer, very robust",
@@ -190,6 +213,63 @@ const I18N = (() => {
     },
   };
 
+  // Mensajes de error del motor y la API, que están en español. Clave: el texto o su comienzo.
+  const ERRORS = {
+    "El archivo descargado no coincide con su hash firmado. No se instala.": "The downloaded file does not match its signed hash. It will not be installed.",
+    "El informe es demasiado grande.": "The report is too large.",
+    "El informe ha sido modificado: su sello o su firma no coinciden. No se importa.": "The report has been modified: its seal or signature does not match. It will not be imported.",
+    "El informe no se puede guardar dentro de la carpeta que se hashea: la modificaría.": "The report cannot be saved inside the folder being hashed: that would modify it.",
+    "El informe no se puede guardar en el disco que se hashea: lo modificaría.": "The report cannot be saved on the disk being hashed: that would modify it.",
+    "El informe ya no está en esa carpeta.": "The report is no longer in that folder.",
+    "El registro no existe.": "The record does not exist.",
+    "Elige al menos un algoritmo.": "Choose at least one algorithm.",
+    "Elige dónde guardar el informe.": "Choose where to save the report.",
+    "Elige un disco de la lista o una imagen de disco": "Choose a disk from the list or a disk image (.dd, .raw, .img, .iso, .E01).",
+    "Ese informe no lo ha creado ForensiX Hash.": "That report was not created by ForensiX Hash.",
+    "Esa unidad es FAT32": "That drive is FAT32 and cannot hold files over 4 GB: choose another one for the image.",
+    "Esta copia no se puede actualizar sola": "This copy cannot update itself: download the new version from GitHub.",
+    "Falta la librería libewf": "The libewf library needed to read E01 images is missing.",
+    "Falta la ruta.": "The path is missing.",
+    "Formato no soportado": "Unsupported format.",
+    "Indica quién realiza el hash (examinador).": "Enter who is performing the hash (examiner).",
+    "Indica qué quieres hashear.": "Enter what you want to hash.",
+    "La descarga es demasiado grande.": "The download is too large.",
+    "La firma de la actualización no es válida. No se instala.": "The update signature is not valid. It will not be installed.",
+    "La operación no existe.": "The operation does not exist.",
+    "La ruta no es un archivo.": "The path is not a file.",
+    "La ruta no es una carpeta.": "The path is not a folder.",
+    "Leer un disco completo necesita permisos de administrador.": "Reading a whole disk requires administrator rights.",
+    "No es un informe de ForensiX Hash.": "This is not a ForensiX Hash report.",
+    "No existe": "It does not exist.",
+    "No hay espacio suficiente": "There is not enough free space in that folder for the image.",
+    "No se encontró Microsoft Edge ni Chrome": "Microsoft Edge or Chrome was not found to create the PDF.",
+    "No se pudo abrir la imagen E01": "The E01 image could not be opened: it may be damaged or incomplete.",
+    "No se pudo adjuntar el registro al PDF.": "The record could not be attached to the PDF.",
+    "No se pudo conectar con GitHub": "Could not connect to GitHub.",
+    "No se pudo crear el PDF del informe.": "The PDF report could not be created.",
+    "No se pudo obtener el sello de tiempo": "The timestamp could not be obtained.",
+    "Respuesta de GitHub no válida.": "Invalid response from GitHub.",
+    "Solo disponible en Windows.": "Only available on Windows.",
+    "Solo se admiten rutas de unidades locales": "Only paths on local drives are allowed (no network paths).",
+    "Solo se descargan actualizaciones por HTTPS.": "Updates are only downloaded over HTTPS.",
+    "Solo se puede crear una imagen forense de un disco.": "A forensic image can only be created from a disk.",
+    "Tipo de evidencia no válido": "Invalid evidence type.",
+    "Algoritmo no soportado": "Unsupported algorithm.",
+    "El registro no tiene": "The record does not include that algorithm.",
+    "Respuesta de sello de tiempo no válida.": "Invalid timestamp response.",
+    "La autoridad de sellado rechazó la petición.": "The timestamp authority rejected the request.",
+    "El sello de tiempo no corresponde a este registro.": "The timestamp does not match this record.",
+    "No es un archivo": "It is not a file.",
+    "No es una carpeta": "It is not a folder.",
+    "Lectura incompleta en el byte": "Incomplete read.",
+  };
+
+  function error(text) {
+    if (lang !== "en" || !text) return text;
+    const key = Object.keys(ERRORS).filter(k => text.startsWith(k)).sort((a, b) => b.length - a.length)[0];
+    return key ? ERRORS[key] : text;
+  }
+
   const original = new Map();
   let lang = "es";
   try { lang = localStorage.getItem("forensix.lang") || (navigator.language.startsWith("es") ? "es" : "en"); } catch { /* sin almacenamiento */ }
@@ -223,7 +303,7 @@ const I18N = (() => {
     document.dispatchEvent(new CustomEvent("langchange"));
   }
 
-  return { apply, t, setLang, get lang() { return lang; } };
+  return { apply, t, setLang, error, get lang() { return lang; } };
 })();
 
 const t = I18N.t;

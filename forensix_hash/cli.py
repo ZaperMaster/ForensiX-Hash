@@ -4,6 +4,7 @@
     python -m forensix_hash dir   CARPETA   --examiner "Nombre"
     python -m forensix_hash disk  \\\\.\\PhysicalDrive1 --examiner "Nombre"   (como administrador)
     python -m forensix_hash verify ID       --examiner "Nombre" [--target COPIA]
+    python -m forensix_hash import informe.pdf          (registro de otro equipo)
     python -m forensix_hash list | disks | custody
 """
 
@@ -12,7 +13,7 @@ import sys
 from pathlib import Path
 from threading import Event, Thread
 
-from . import APP_NAME, __version__, devices, engine, pdf, report, store
+from . import APP_NAME, __version__, devices, engine, pdf, report, signing, store
 from .hasher import ALGORITHMS, DEFAULT_ALGORITHMS, Cancelled
 from .progress import Progress
 from .report import human_size
@@ -53,7 +54,10 @@ def _print_record(record: dict) -> None:
         print(f"  {ALGORITHMS[algorithm]:<11}: {record['hashes'][algorithm]}")
     last = record["verifications"][-1]
     print(f"  Resultado  : {RESULT_TEXT[last['result']]} ({last['finished']}, {last['examiner']})")
+    if record.get("image"):
+        print(f"  Imagen     : {RESULT_TEXT.get(record['image'].get('result'), '?')} {record['image']['path']}")
     print(f"  Registro   : {record['id']}")
+    print(f"  Firma      : {signing.signature_status(record)} · {(record.get('signature') or {}).get('fingerprint', '')}")
 
 
 def _write_reports(record: dict, outputs: list[str], lang: str) -> None:
@@ -87,6 +91,9 @@ def build_parser() -> argparse.ArgumentParser:
         sub.add_argument("--algorithms", default=",".join(DEFAULT_ALGORITHMS),
                          help=f"separados por comas: {', '.join(ALGORITHMS)}")
         sub.add_argument("--pdf", metavar="CARPETA", help="guardar el informe PDF en esta carpeta")
+        sub.add_argument("--timestamp", action="store_true", help="pedir un sello de tiempo externo (RFC 3161)")
+        if command == "disk":
+            sub.add_argument("--image", metavar="CARPETA", help="crear además la imagen forense .dd en esta carpeta")
         sub.add_argument("--out", action="append", help="informe a generar (.html, .txt, .json, .csv, .sha256…)")
         sub.add_argument("--lang", default="es", choices=["es", "en"])
 
@@ -97,6 +104,9 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument("--notes", default="")
     verify.add_argument("--out", action="append")
     verify.add_argument("--lang", default="es", choices=["es", "en"])
+
+    imported = commands.add_parser("import", help="importar un informe PDF de otro equipo")
+    imported.add_argument("report")
 
     commands.add_parser("list", help="registros guardados")
     commands.add_parser("disks", help="discos y volúmenes del equipo")
@@ -114,9 +124,15 @@ def main(argv=None) -> int:
                     "organization": args.organization, "description": args.description, "notes": args.notes}
             kind = KIND_BY_COMMAND[args.command]
             folder = pdf.check_destination(kind, engine._resolve_target(kind, args.target), args.pdf) if args.pdf else None
+            image = getattr(args, "image", None)
             record = _run_with_progress(lambda: engine.acquire(
-                kind, args.target, args.algorithms.split(","), case, progress, cancel), progress)
+                kind, args.target, args.algorithms.split(","), case, progress, cancel, image_folder=image), progress)
             _print_record(record)
+            if args.timestamp:
+                stamp = signing.timestamp_record(record)
+                store.write_record(record)
+                store.log_event("timestamped", record, tsa=stamp["tsa"], stamped=stamp["time"])
+                print(f"  Sello tiempo: {stamp['time']} ({stamp['tsa']})")
             if folder:
                 print(f"  Informe PDF: {pdf.save_report(record, folder, args.lang)}")
             _write_reports(record, args.out, args.lang)
@@ -129,6 +145,11 @@ def main(argv=None) -> int:
             _print_record(record)
             _write_reports(record, args.out, args.lang)
             return 0 if entry["result"] == "verified" else 2
+
+        if args.command == "import":
+            record, existing = pdf.import_report(Path(args.report).read_bytes())
+            print(f"{'Ya estaba' if existing else 'Importado'}: {record['id']}  {record['label']}")
+            return 0
 
         if args.command == "list":
             for item in store.list_records():
@@ -154,7 +175,7 @@ def main(argv=None) -> int:
         return 130
     except Cancelled:
         return 130
-    except (OSError, ValueError, KeyError, RuntimeError) as error:
+    except (OSError, ValueError, KeyError, RuntimeError, signing.TimestampError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
     return 0

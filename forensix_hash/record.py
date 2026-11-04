@@ -60,8 +60,12 @@ def canonical(data) -> bytes:
     return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
+# La firma y los sellos de tiempo se calculan sobre el sello, así que no forman parte de él.
+UNSEALED = ("seal", "signature", "timestamps")
+
+
 def compute_seal(record: dict) -> str:
-    return hashlib.sha256(canonical({k: v for k, v in record.items() if k != "seal"})).hexdigest()
+    return hashlib.sha256(canonical({k: v for k, v in record.items() if k not in UNSEALED})).hexdigest()
 
 
 def seal(record: dict) -> dict:
@@ -84,4 +88,7 @@ def status(record: dict) -> str:
     verifications = record.get("verifications") or []
     if not verifications:
         return "pending"
+    details = record.get("details") or {}
+    if (record.get("image") or {}).get("result") == "mismatch" or (details.get("ewf") or {}).get("match") is False:
+        return "mismatch"
     return verifications[-1]["result"]

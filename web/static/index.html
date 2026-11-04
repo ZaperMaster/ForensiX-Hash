@@ -100,9 +100,12 @@
             <span class="muted" data-i18n="disk.choose">Elige el disco completo o uno de sus volúmenes:</span>
             <button type="button" class="ghost small" id="refreshDisks" data-i18n="disk.refresh">Actualizar</button>
           </div>
+          <div class="notice warn" id="liveNotice" hidden>
+            <span data-i18n="disk.live">Este disco está en uso por Windows, que escribe en él mientras se lee: la verificación seguramente dará NO COINCIDE. Para un resultado fiable, analízalo desde otro equipo con un bloqueador de escritura.</span>
+          </div>
           <div id="diskList" class="disk-list"></div>
           <div class="path-row image-row">
-            <input id="imagePath" type="text" spellcheck="false" autocomplete="off" data-i18n-placeholder="disk.image_placeholder" placeholder="…o una imagen de disco (.dd, .raw, .img, .iso)">
+            <input id="imagePath" type="text" spellcheck="false" autocomplete="off" data-i18n-placeholder="disk.image_placeholder" placeholder="…o una imagen de disco (.dd, .raw, .img, .iso, .E01)">
             <button id="browseImage" type="button" class="secondary" data-i18n="new.browse">Examinar…</button>
           </div>
           <p class="hint" data-i18n="disk.readonly">Se lee en solo lectura, sector a sector. Para evidencias reales usa un bloqueador de escritura.</p>
@@ -140,6 +143,8 @@
           <button id="browseOutput" type="button" class="secondary" data-i18n="new.browse">Examinar…</button>
         </div>
         <p class="hint" data-i18n="new.output_hint">Al terminar se crea ahí el informe en PDF como comprobante. No puede ser dentro de la evidencia, porque la modificaría.</p>
+        <label class="switch image-option" id="imageOption" hidden><input type="checkbox" id="makeImage"><span data-i18n="new.image">Crear también la imagen forense (.dd) en esta carpeta</span></label>
+        <p class="hint" id="imageHint" hidden data-i18n="new.image_hint">Se copia durante la primera lectura, con los mismos datos que se hashean, y después se comprueba leyéndola. Necesita tanto espacio libre como el disco.</p>
         <h2 class="summary-title" data-i18n="new.summary">Resumen</h2>
         <dl class="facts" id="summary"></dl>
       </div>
@@ -246,6 +251,7 @@
         <div class="card span2">
           <h2 data-i18n="record.integrity">Integridad del registro</h2>
           <p id="recordSeal"></p>
+          <dl id="recordTrust" class="facts"></dl>
           <p class="hint" data-i18n="record.seal_hint">El sello es el SHA-256 del registro. Si alguien edita el JSON (un hash, una fecha, un nombre), deja de coincidir.</p>
           <div class="actions left"><button type="button" class="ghost danger-text small" id="deleteRecord" data-i18n="record.delete">Eliminar registro</button></div>
         </div>
@@ -257,7 +263,10 @@
       <div class="view-head row">
         <div><h1 data-i18n="history.title">Registros</h1>
           <p class="lead" data-i18n="history.lead">Todas las evidencias hasheadas en este equipo.</p></div>
-        <input id="historySearch" type="search" data-i18n-placeholder="history.search" placeholder="Buscar por caso, evidencia, ruta o persona…">
+        <div class="history-tools">
+          <label class="secondary import-button"><input type="file" id="importFile" accept=".pdf,application/pdf" hidden><span data-i18n="history.import">Importar informe PDF</span></label>
+          <input id="historySearch" type="search" data-i18n-placeholder="history.search" placeholder="Buscar por caso, evidencia, ruta o persona…">
+        </div>
       </div>
       <div id="historyList" class="history"></div>
     </section>
@@ -295,6 +304,11 @@
             <button type="button" data-lang-choice="es">Español</button>
             <button type="button" data-lang-choice="en">English</button>
           </div>
+        </div>
+        <div class="setting">
+          <div><h2 data-i18n="settings.timestamp">Sello de tiempo externo</h2>
+            <p class="hint" data-i18n="settings.timestamp_hint">Una autoridad externa certifica la fecha de cada registro, sin depender del reloj del equipo. Solo se envía un hash, nunca datos de la evidencia.</p></div>
+          <label class="switch"><input type="checkbox" id="useTimestamp" checked><span data-i18n="settings.timestamp_on">Pedir sello</span></label>
         </div>
         <div class="setting">
           <div><h2 data-i18n="settings.updates">Actualizaciones</h2>
