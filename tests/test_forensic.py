@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import json
+import time
 from pathlib import Path
 from threading import Event
 
@@ -113,10 +114,11 @@ def test_no_internet_is_not_fatal_for_the_job(evidence, tmp_path, blank_pdf, mon
     job = client.post("/api/jobs", headers=HEADERS, json={
         "kind": "file", "target": str(evidence / "a.txt"), "case": CASE, "output": str(tmp_path / "o"),
         "timestamp": True}).json()
-    for _ in range(200):
+    for _ in range(600):
         job = client.get(f"/api/jobs/{job['id']}", headers=HEADERS).json()
         if job["state"] != "running":
             break
+        time.sleep(0.05)
     assert job["state"] == "done" and job["timestamp_error"] and job["pdf"]
 
 
