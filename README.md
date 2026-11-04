@@ -65,7 +65,7 @@ Un asistente de cuatro pasos y el proceso:
 
 | Verificado | No coincide |
 |---|---|
-| ![Registro verificado de un pendrive de 64 GB](docs/capturas/resultado.png) | ![Una carpeta modificada después de hashearla: NO COINCIDE](docs/capturas/no-coincide.png) |
+| ![Imagen E01 real verificada, con su informe PDF](docs/capturas/resultado.png) | ![Una carpeta modificada después de hashearla: NO COINCIDE](docs/capturas/no-coincide.png) |
 | Se vuelve a leer la evidencia y da **los mismos hashes**. | Si la evidencia cambia, la verificación lo detecta y dice **quién y cuándo** la comprobó. |
 
 <p align="center">
@@ -83,7 +83,7 @@ Un asistente de cuatro pasos y el proceso:
 |---|---|
 | ![Discos y volúmenes con modelo, nº de serie y conexión](docs/capturas/discos.png) | ![Ajustes en tema oscuro: tema, idioma y actualizaciones](docs/capturas/ajustes.png) |
 
-<sub>Pruebas reales con un pendrive USB SanDisk de 64 GB del autor; los demás datos son de demostración.</sub>
+<sub>Capturas con la imagen E01 pública `nps-2010-emails` de Digital Corpora y datos de demostración.</sub>
 
 ## Qué incluye
 

@@ -151,6 +151,11 @@ def main() -> None:
         report = browser.new_page(viewport={"width": 1000, "height": 1300}, device_scale_factor=1.5)
         report.goto(f"{args.base}/report/{args.record}")
         report.emulate_media(media="print")
+        # Sin el nombre real del equipo ni del usuario en una imagen pública
+        report.evaluate("""() => document.querySelectorAll('td').forEach(cell => {
+            const label = cell.previousElementSibling?.textContent;
+            if (['Equipo', 'Usuario del sistema'].includes(label)) cell.textContent = 'LAB-01';
+        })""")
         report.screenshot(path=OUT / "informe.png")
         browser.close()
 
